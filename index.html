@@ -127,6 +127,7 @@
       <section id="empty-state" class="panel empty-state">
         <div class="empty-copy">
           <div class="panel-kicker">Recombination workspace</div>
+          <span class="infernal-note empty-infernal" aria-hidden="true">⛧ Lux ex tenebris · question everything.</span>
           <h1>See RDP events at a glance.</h1>
           <p>Open an RDP CSV export to turn breakpoint calls, parental comparisons, confidence intervals, and ORFs into one focused interactive figure.</p>
           <div class="empty-features" aria-label="Visualization features">
@@ -156,6 +157,7 @@
             <span class="preview-region">candidate interval</span>
           </div>
           <div class="preview-axis"><span>Alignment position</span><span>Interactive zoom + hover</span></div>
+          <span class="infernal-whisper preview-infernal" aria-hidden="true">The devil is in the breakpoints.</span>
         </div>
       </section>
 
@@ -192,8 +194,19 @@
 
         <div id="comparison-legend" class="comparison-legend" aria-label="Comparison legend"></div>
 
+        <div class="orf-frame-key" aria-label="ORF reading-frame colors">
+          <span class="orf-key-label">ORF frames</span>
+          <span><i style="--orf-color:#2563eb"></i>+1</span>
+          <span><i style="--orf-color:#0891b2"></i>+2</span>
+          <span><i style="--orf-color:#059669"></i>+3</span>
+          <span><i style="--orf-color:#ea580c"></i>−1</span>
+          <span><i style="--orf-color:#dc2626"></i>−2</span>
+          <span><i style="--orf-color:#9333ea"></i>−3</span>
+          <span class="infernal-whisper orf-infernal" aria-hidden="true">Six frames. No false idols.</span>
+        </div>
+
         <div class="annotation-key" aria-label="RDP visual layers">
-          <span><i class="key-arrow" aria-hidden="true">→</i>ORF direction / signed frame</span>
+          <span><i class="key-arrow" aria-hidden="true">→</i>ORF direction</span>
           <span><i class="key-box ci99"></i>99% CI</span>
           <span><i class="key-box ci95"></i>95% CI</span>
           <span><i class="key-line breakpoint"></i>Reported breakpoint</span>
