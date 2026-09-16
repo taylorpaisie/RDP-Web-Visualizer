@@ -221,59 +221,6 @@ tr:last-child td{border-bottom:none}
 .support-note strong{color:#64748b}
 .footer{padding:22px 0 32px;text-align:center;color:#94a3b8;font-size:.72rem}
 
-/* Extra infernal easter eggs: decorative only, never part of scientific plots. */
-.brand-mark::after{
-  content:"⛧";
-  position:absolute;
-  inset:0;
-  display:grid;
-  place-items:center;
-  color:#fee2e2;
-  font-size:14px;
-  opacity:0;
-  transform:scale(.72) rotate(-8deg);
-  transition:opacity .22s ease,transform .22s ease;
-  pointer-events:none;
-}
-.brand-mark:hover::after{opacity:.48;transform:scale(1) rotate(0)}
-.brand-subtitle::after{
-  content:" · lux ex tenebris";
-  margin-left:4px;
-  color:#cbd5e1;
-  font-size:.68rem;
-  font-style:italic;
-  opacity:.22;
-}
-.privacy-pill::after{content:"⛧";font-size:.68rem;opacity:.28;margin-left:1px}
-.source-panel .sidebar-copy::after{
-  content:"The devil is in the data.";
-  display:block;
-  margin-top:6px;
-  color:#7f1d1d;
-  font-size:.69rem;
-  font-weight:700;
-  letter-spacing:.045em;
-  opacity:.30;
-  transition:opacity .2s ease;
-}
-.source-panel:hover .sidebar-copy::after{opacity:.58}
-.detail-card:first-child .panel-kicker::after{
-  content:" · the devil is in the details";
-  margin-left:5px;
-  color:#7f1d1d;
-  text-transform:lowercase;
-  letter-spacing:.045em;
-  opacity:.26;
-}
-.references-panel .panel-kicker::after{
-  content:" · Ave Satanas.";
-  margin-left:5px;
-  color:#7f1d1d;
-  text-transform:none;
-  letter-spacing:.04em;
-  opacity:.25;
-}
-
 @media (max-width:1080px){
   .workspace{grid-template-columns:270px minmax(0,1fr)}
   .summary-strip{align-items:flex-start;flex-direction:column}
