@@ -12,6 +12,13 @@
     .key-arrow{display:inline-grid;place-items:center;width:17px;height:12px;color:#475569;font-size:14px;font-weight:800;line-height:1}
     .infernal-whisper{color:#3f4654;font-size:.64rem;font-weight:700;letter-spacing:.065em;text-transform:lowercase;opacity:.27;transition:opacity .22s ease,color .22s ease;user-select:none}
     .infernal-whisper:hover{opacity:.72;color:#8f1d1d}
+    .infernal-note{display:inline-flex;align-items:center;gap:5px;color:#7f1d1d;font-size:.68rem;font-weight:720;letter-spacing:.045em;opacity:.42;transition:opacity .2s ease,color .2s ease;user-select:none}
+    .infernal-note:hover{opacity:.78;color:#991b1b}
+    .source-infernal{display:flex;margin:-7px 0 14px 1px}
+    .summary-infernal{margin-left:auto;align-self:flex-end;white-space:nowrap;opacity:.30}
+    .detail-infernal{display:block;margin-top:4px}
+    .reference-infernal{display:block;margin-top:5px}
+    .brand-infernal{color:#fca5a5;font-size:.72rem;font-weight:800;opacity:.48;margin-left:-5px;transform:translateY(-1px)}
     .whisper-inline{display:inline-block;margin-left:7px}
     .footer{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap}
     .citation-mini{margin-top:13px;padding-top:12px;border-top:1px solid #e7edf3}
@@ -28,8 +35,8 @@
     .reference-card p{margin:0;color:#64748b;font-size:.74rem;line-height:1.52}
     .reference-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:7px;font-size:.71rem}
     .provenance-note{margin-top:10px;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid #e5eaf0;color:#64748b;font-size:.73rem;line-height:1.5}
-    @media (prefers-reduced-motion:reduce){.infernal-whisper{transition:none}}
-    @media (max-width:760px){.reference-grid{grid-template-columns:1fr}.references-heading{flex-direction:column}}
+    @media (prefers-reduced-motion:reduce){.infernal-whisper,.infernal-note{transition:none}}
+    @media (max-width:760px){.reference-grid{grid-template-columns:1fr}.references-heading{flex-direction:column}.summary-infernal{display:none}}
   </style>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
   <script src="rdp-parser.js" defer></script>
@@ -47,6 +54,7 @@
           <div class="brand-title">RDP Web Visualizer</div>
           <div class="brand-subtitle">Recombination event explorer</div>
         </div>
+        <span class="brand-infernal" aria-hidden="true" title="lux ex tenebris">⛧</span>
       </div>
       <div class="app-bar-actions">
         <span class="version-pill">RDP5 · CSV 1 + 2</span>
@@ -63,6 +71,7 @@
         <div class="panel-kicker">Data source</div>
         <h1>Open RDP output</h1>
         <p class="sidebar-copy">Open an RDP export folder or load a single CSV. Supported files are parsed entirely in your browser.</p>
+        <div class="source-infernal"><span class="infernal-note" aria-hidden="true">⛧ The devil is in the data.</span></div>
 
         <div class="source-actions">
           <button id="choose-folder" class="btn primary" type="button">
@@ -125,6 +134,7 @@
           <div class="metric"><span>ORFs</span><strong id="metric-genes">—</strong></div>
           <div class="metric"><span>Comparisons</span><strong id="metric-series">—</strong></div>
         </div>
+        <span class="infernal-note summary-infernal" aria-hidden="true">lux ex tenebris</span>
       </section>
 
       <section id="plot-card" class="panel plot-card hidden">
@@ -163,7 +173,11 @@
       <section id="details" class="detail-grid hidden">
         <article class="panel detail-card">
           <div class="detail-heading">
-            <div><div class="panel-kicker">RDP metadata</div><h2>Event details</h2></div>
+            <div>
+              <div class="panel-kicker">RDP metadata</div>
+              <h2>Event details</h2>
+              <span class="infernal-note detail-infernal" aria-hidden="true">⛧ The devil is in the details.</span>
+            </div>
           </div>
           <div class="table-wrap"><table id="metadata-table"><tbody></tbody></table></div>
         </article>
@@ -186,6 +200,7 @@
           <div>
             <div class="panel-kicker">Scientific provenance</div>
             <h2 id="references-title">References &amp; citation</h2>
+            <span class="infernal-note reference-infernal" aria-hidden="true">Ave Satanas.</span>
           </div>
           <p class="references-intro">This site visualizes RDP5 CSV exports; it does not re-run recombination detection. Cite RDP5 itself, and cite method-specific papers when the underlying analysis uses those methods.</p>
         </div>
