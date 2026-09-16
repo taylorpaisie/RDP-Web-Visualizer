@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b1220" />
+  <meta name="description" content="About RDP Web Visualizer, a browser-based viewer for RDP5 CSV exports." />
+  <title>About · RDP Web Visualizer</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="contact.js" defer></script>
+</head>
+<body>
+  <header class="app-bar">
+    <div class="shell app-bar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div>
+          <div class="brand-title">RDP Web Visualizer</div>
+          <div class="brand-subtitle">Recombination event explorer</div>
+        </div>
+      </div>
+      <div class="app-bar-actions">
+        <nav class="site-nav" aria-label="Main navigation">
+          <a href="index.html">Visualizer</a>
+          <a href="about.html" aria-current="page">About</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell about-page">
+    <article class="panel about-layout" aria-labelledby="about-title">
+      <div class="about-copy">
+        <div class="panel-kicker">About the project</div>
+        <h1 id="about-title">RDP output, easier to explore.</h1>
+        <p class="about-intro">RDP Web Visualizer turns RDP5 CSV exports into interactive figures for teaching and exploratory visualization.</p>
+        <p>Explore comparison curves, breakpoint calls, confidence intervals, and open reading frames together. The viewer supports CSV Code 1 and Code 2 exports, with zoom, hover details, and figure downloads.</p>
+
+        <h2>Your files stay in your browser</h2>
+        <p>Choose an RDP output folder or a single CSV. Selected files are processed locally in your browser without uploading their contents to a server.</p>
+
+        <h2>Built around RDP</h2>
+        <p>This project visualizes exported results. It does not run recombination detection or independently validate an event. When reporting analyses, cite RDP5 and the relevant detection methods.</p>
+        <p><a href="index.html#references-title">View references and citation guidance</a></p>
+
+        <h2>Contact</h2>
+        <p>Questions or feedback? Contact Taylor K. Paisie at <a href="mailto:tpaisie91@gmail.com">tpaisie91@gmail.com</a>.</p>
+        <a class="btn primary empty-cta" href="index.html">Open the visualizer</a>
+      </div>
+      <figure class="about-image">
+        <img src="images/ham-and-peng.png" width="1122" height="1402" alt="A gray and white cat curled up asleep among penguins in low vegetation." decoding="async" />
+      </figure>
+    </article>
+  </main>
+
+  <footer class="shell footer about-footer">
+    <span>RDP Web Visualizer · browser-only teaching and exploratory visualization</span>
+  </footer>
+</body>
+</html>
