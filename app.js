@@ -45,6 +45,16 @@ const ORF_TRACK_Y = {
   '-3': 0.5,
 };
 
+// Frame colors are deliberately distinct across direction and reading frame.
+const ORF_FRAME_COLORS = {
+  '+1': '#2563eb',
+  '+2': '#0891b2',
+  '+3': '#059669',
+  '-1': '#ea580c',
+  '-2': '#dc2626',
+  '-3': '#9333ea',
+};
+
 function normalizedReadingFrame(frame) {
   const value = Math.abs(Number(frame));
   if (!Number.isFinite(value) || value < 1) return 1;
@@ -59,6 +69,10 @@ function signedFrameLabel(gene) {
 
 function signedFrameY(gene) {
   return ORF_TRACK_Y[signedFrameLabel(gene)] ?? 5.5;
+}
+
+function signedFrameColor(gene) {
+  return ORF_FRAME_COLORS[signedFrameLabel(gene)] ?? '#64748b';
 }
 
 function setStatus(message, kind = 'neutral') {
@@ -146,7 +160,7 @@ function buildOrfTraces(genes) {
     y: genes.map(signedFrameY),
     width: 0.42,
     marker: {
-      color: genes.map((g) => g.orientation === 1 ? '#0f172a' : '#64748b'),
+      color: genes.map(signedFrameColor),
       line: { color: '#ffffff', width: 0.5 },
     },
     customdata: genes.map((g) => [
@@ -168,7 +182,7 @@ function buildOrfTraces(genes) {
     marker: {
       symbol: genes.map((g) => g.orientation === 2 ? 'triangle-left' : 'triangle-right'),
       size: 8,
-      color: genes.map((g) => g.orientation === 1 ? '#0f172a' : '#64748b'),
+      color: genes.map(signedFrameColor),
       line: { color: '#ffffff', width: 0.7 },
     },
     customdata: genes.map((g) => [signedFrameLabel(g), g.orientation === 1 ? 'Left → right' : 'Right → left']),
