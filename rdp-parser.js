@@ -27,6 +27,13 @@
     return line.split(',').map((x) => x.trim());
   }
 
+  function normalizeDisplayLabel(value) {
+    // Some RDP CSV exports contain the literal typo "paret" in the
+    // Major/Minor parent role labels. Preserve the source file itself while
+    // correcting only the human-readable label shown by this viewer.
+    return String(value || '').replace(/\bparet\b/gi, 'parent');
+  }
+
   function correctedPlotColors(rawNames) {
     const names = [...rawNames];
     // In the supplied RDP exports, slots 2 and 3 need to be swapped to
@@ -95,7 +102,7 @@
 
     const rawColorNames = splitCsvLine(lines[plotIndex + 1]).slice(1).filter(Boolean);
     const colorNames = correctedPlotColors(rawColorNames);
-    const roleLabels = splitCsvLine(lines[plotIndex + 2]).slice(1).filter(Boolean);
+    const roleLabels = splitCsvLine(lines[plotIndex + 2]).slice(1).filter(Boolean).map(normalizeDisplayLabel);
     const header = splitCsvLine(lines[plotIndex + 3]);
     if (header.length < 2) throw new Error('The plot-data header is missing.');
 
@@ -144,7 +151,7 @@
 
     const rawColorNames = splitCsvLine(lines[plotIndex + 1]).slice(1).filter(Boolean);
     const colorNames = correctedPlotColors(rawColorNames);
-    const roleLabels = splitCsvLine(lines[plotIndex + 2]).slice(1).filter(Boolean);
+    const roleLabels = splitCsvLine(lines[plotIndex + 2]).slice(1).filter(Boolean).map(normalizeDisplayLabel);
 
     const batches = [];
     let currentBatch = null;
@@ -172,7 +179,7 @@
         const colorName = colorNames[batchIndex] || ['yellow', 'green', 'purple'][batchIndex] || '';
         currentBatch = {
           index: batchIndex,
-          name: parts.slice(2).filter(Boolean).join(', '),
+          name: normalizeDisplayLabel(parts.slice(2).filter(Boolean).join(', ')),
           role: roleLabels[batchIndex] || '',
           colorName,
           color: COLOR_MAP[colorName.toLowerCase()] || FALLBACK_COLORS[batchIndex % FALLBACK_COLORS.length],
