@@ -213,7 +213,9 @@ function renderPlot(parsed) {
   let plotBackground = '#ffffff';
   let y2Grid = '#edf2f7';
   let bottomMargin = 58;
-  let legend = { orientation: 'h', x: 1, xanchor: 'right', y: 0.64, yanchor: 'bottom', font: { size: 10 } };
+  const legend = { orientation: 'h', x: 1, xanchor: 'right', y: 0.64, yanchor: 'bottom', font: { size: 10 } };
+  let x2Ticks = null;
+  let y2Ticks = null;
 
   if (parsed.kind === 'lines') {
     for (const s of parsed.series) {
@@ -246,7 +248,9 @@ function renderPlot(parsed) {
     plotBackground = '#dcdcdc';
     y2Grid = 'rgba(0,0,0,0)';
     bottomMargin = 118;
-    legend = { visible: false };
+    x2Ticks = [1, Math.round(maxX * 0.25), Math.round(maxX * 0.5), Math.round(maxX * 0.75), maxX];
+    const top = yRange[1];
+    y2Ticks = Array.from({ length: 7 }, (_, i) => (top * i) / 6);
   }
 
   const layout = {
@@ -257,6 +261,7 @@ function renderPlot(parsed) {
     plot_bgcolor: plotBackground,
     font: { family: 'Inter, ui-sans-serif, system-ui, sans-serif', color: '#0f172a', size: 12 },
     barmode: 'overlay', hovermode,
+    showlegend: parsed.kind === 'lines',
     legend,
     xaxis: { domain: [0, 1], anchor: 'y', range: [0, maxX], showticklabels: false, showgrid: false, zeroline: false },
     yaxis: {
@@ -276,6 +281,7 @@ function renderPlot(parsed) {
       linecolor: '#222222',
       linewidth: 1,
       mirror: false,
+      ...(x2Ticks ? { tickmode: 'array', tickvals: x2Ticks, ticktext: x2Ticks.map((v) => v.toLocaleString()) } : {}),
     },
     yaxis2: {
       domain: [0, 0.62], anchor: 'x2', range: yRange,
@@ -285,6 +291,7 @@ function renderPlot(parsed) {
       showline: true,
       linecolor: '#222222',
       linewidth: 1,
+      ...(y2Ticks ? { tickmode: 'array', tickvals: y2Ticks, tickformat: '.3g' } : {}),
     },
     shapes,
     annotations,
