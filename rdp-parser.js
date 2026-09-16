@@ -2,18 +2,19 @@
 
 (function () {
   const COLOR_MAP = {
-    yellow: '#d6cb25',
-    purple: '#b95cc9',
-    green: '#5b9f3a',
+    // These are tuned to match the colors used by the RDP v5.93 plots.
+    yellow: '#d4c91f',
+    purple: '#a22aa8',
+    green: '#159a9a',
     blue: '#299bb5',
-    cyan: '#299bb5',
-    red: '#d74a4a',
+    cyan: '#159a9a',
+    red: '#ef4444',
     orange: '#d97706',
     black: '#111827',
     grey: '#64748b',
     gray: '#64748b',
   };
-  const FALLBACK_COLORS = ['#d6cb25', '#5b9f3a', '#b95cc9', '#299bb5'];
+  const FALLBACK_COLORS = ['#d4c91f', '#159a9a', '#a22aa8', '#299bb5'];
 
   function parsePair(values) {
     if (!values || values.length < 2) return null;
@@ -28,8 +29,8 @@
 
   function correctedPlotColors(rawNames) {
     const names = [...rawNames];
-    // RDP's export labels the recombinant-major and recombinant-minor colors
-    // in the opposite order from the displayed plot. Swap slots 2 and 3.
+    // In the supplied RDP exports, slots 2 and 3 need to be swapped to
+    // reproduce the colors shown by RDP itself.
     if (names.length >= 3) [names[1], names[2]] = [names[2], names[1]];
     return names;
   }
@@ -221,7 +222,6 @@
     throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 and 2.`);
   }
 
-  // Backward-compatible alias for older app code/bookmarks.
   function parseRdpCode1Csv(text, filename = 'RDP export.csv') {
     const parsed = parseRdpCsv(text, filename);
     if (parsed.code !== 1) throw new Error(`Expected RDP CSV Code 1 but found Code ${parsed.code}.`);
