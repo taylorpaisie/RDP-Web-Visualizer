@@ -35,6 +35,31 @@ let currentModified = null;
 let currentParsed = null;
 let pollTimer = null;
 let scanInProgress = false;
+let comparisonVisible = [];
+
+function comparisonItems(parsed) {
+  return parsed.kind === 'boxes' ? parsed.batches : parsed.series;
+}
+
+function updateComparisonVisibility() {
+  const traceIndices = [];
+  const visibility = [];
+  els.plot.data.forEach((trace, index) => {
+    if (Number.isInteger(trace.meta?.comparisonIndex)) {
+      traceIndices.push(index);
+      visibility.push(comparisonVisible[trace.meta.comparisonIndex]);
+    }
+  });
+  if (traceIndices.length) Plotly.restyle(els.plot, { visible: visibility }, traceIndices);
+  const update = {};
+  (els.plot.layout.shapes || []).forEach((shape, index) => {
+    if (shape.name?.startsWith('comparison-')) {
+      update[`shapes[${index}].visible`] = comparisonVisible[Number(shape.name.slice(11))];
+    }
+  });
+  if (Object.keys(update).length) Plotly.relayout(els.plot, update);
+  renderComparisonLegend(currentParsed);
+}
 
 const ORF_TRACK_Y = {
   '+1': 5.5,
@@ -208,7 +233,7 @@ function buildCommonShapes(metadata) {
 function renderComparisonLegend(parsed) {
   els.comparisonLegend.replaceChildren();
   const items = parsed.kind === 'boxes' ? parsed.batches : parsed.series;
-  for (const item of items) {
+  for (const [index, item] of items.entries()) {
     const card = document.createElement('div');
     card.className = 'comparison-item';
 
@@ -224,13 +249,45 @@ function renderComparisonLegend(parsed) {
     name.title = item.name || '';
     copy.append(role, name);
 
-    card.append(swatch, copy);
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'comparison-toggle';
+    toggle.setAttribute('aria-pressed', String(comparisonVisible[index]));
+    toggle.setAttribute('aria-label', `Show ${item.role || item.name || 'comparison'}`);
+    toggle.append(swatch, copy);
+    toggle.addEventListener('click', () => {
+      comparisonVisible[index] = !comparisonVisible[index];
+      updateComparisonVisibility();
+      els.comparisonLegend.querySelectorAll('.comparison-toggle')[index].focus();
+    });
+    const isolate = document.createElement('button');
+    isolate.type = 'button';
+    isolate.className = 'comparison-isolate';
+    isolate.textContent = 'Only';
+    isolate.setAttribute('aria-label', `Show only ${item.role || item.name || 'comparison'}`);
+    isolate.addEventListener('click', () => {
+      comparisonVisible = items.map((_, i) => i === index);
+      updateComparisonVisibility();
+      els.comparisonLegend.querySelectorAll('.comparison-isolate')[index].focus();
+    });
+    card.append(toggle, isolate);
     els.comparisonLegend.append(card);
   }
+  const all = document.createElement('button');
+  all.type = 'button';
+  all.className = 'btn secondary compact';
+  all.textContent = 'Show all';
+  all.addEventListener('click', () => {
+    comparisonVisible.fill(true);
+    updateComparisonVisibility();
+    els.comparisonLegend.lastElementChild.focus();
+  });
+  els.comparisonLegend.append(all);
 }
 
 function renderPlot(parsed) {
   const { genes, metadata } = parsed;
+  els.plot.__rdpEventMetadata = metadata;
   const traces = buildOrfTraces(genes);
   const shapes = buildCommonShapes(metadata);
   const annotations = [
@@ -252,8 +309,9 @@ function renderPlot(parsed) {
   let y2TickText = null;
 
   if (parsed.kind === 'lines') {
-    for (const s of parsed.series) {
+    for (const [index, s] of parsed.series.entries()) {
       traces.push({
+        meta: { comparisonIndex: index },
         type: 'scatter', mode: 'lines', x: parsed.x, y: s.y,
         name: s.role || s.name,
         line: { color: s.color, width: 2.35 },
@@ -266,8 +324,8 @@ function renderPlot(parsed) {
     }
   } else if (parsed.kind === 'boxes') {
     const opacity = Math.max(0, Math.min(1, Number(parsed.transparency) || 0.25));
-    for (const batch of parsed.batches) {
-      for (const box of batch.boxes) shapes.push(boxShape(box, batch.color, opacity));
+    for (const [index, batch] of parsed.batches.entries()) {
+      for (const box of batch.boxes) shapes.push({ ...boxShape(box, batch.color, opacity), name: `comparison-${index}` });
     }
 
     const cutoff = cutoffShape(parsed.upperCutoff);
@@ -365,7 +423,7 @@ function renderPlot(parsed) {
     responsive: true,
     displaylogo: false,
     scrollZoom: true,
-    modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'],
+    modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d', 'toImage'],
     toImageButtonOptions: { format: 'png', filename: `RDP_event_${metadata['Event number'] ?? 'plot'}`, scale: 2 },
   });
 }
@@ -397,6 +455,7 @@ function renderTables(parsed) {
 
 function renderParsed(parsed) {
   currentParsed = parsed;
+  comparisonVisible = comparisonItems(parsed).map(() => true);
   const m = parsed.metadata;
   els.plotTitle.textContent = m['Event title'] || parsed.filename;
   els.metricEvent.textContent = m['Event number'] != null ? `#${m['Event number']}` : '—';
@@ -530,17 +589,61 @@ function exportFilename() {
   return `RDP_Code${code}_event_${eventNo}`;
 }
 
-els.exportFigure.addEventListener('click', () => {
+function figureText(value) {
+  return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+els.exportFigure.addEventListener('click', async () => {
   if (!currentParsed) return;
+  const parsed = currentParsed;
+  const filename = exportFilename();
   const format = els.exportFormat.value || 'png';
   const vector = format === 'svg';
-  Plotly.downloadImage(els.plot, {
+  const exportPlot = document.createElement('div');
+  exportPlot.style.cssText = 'position:absolute;left:-10000px;top:0;width:1600px;';
+  document.body.append(exportPlot);
+  els.exportFigure.disabled = true;
+  try {
+    const data = structuredClone(els.plot.data);
+    const layout = structuredClone(els.plot.layout);
+    const items = comparisonItems(parsed);
+    data.forEach((trace) => {
+      const index = trace.meta?.comparisonIndex;
+      if (!Number.isInteger(index)) return;
+      trace.showlegend = comparisonVisible[index];
+      trace.name = figureText(items[index].role || items[index].name || 'Comparison');
+    });
+    if (parsed.kind === 'boxes') items.forEach((item, index) => {
+      if (comparisonVisible[index]) data.push({
+        type: 'scatter', x: [null], y: [null], xaxis: 'x2', yaxis: 'y2',
+        mode: 'lines', line: { color: item.color, width: 3 },
+        name: figureText(item.role || item.name || 'Comparison'), showlegend: true,
+      });
+    });
+    layout.showlegend = true;
+    layout.legend = { orientation: 'h', x: 0, y: -0.12, font: { size: 14 } };
+    layout.margin = { ...layout.margin, t: 95, b: 165 };
+    layout.title = { text: figureText(parsed.metadata['Event title'] || parsed.filename), x: 0.04, font: { size: 20 } };
+    layout.annotations = [...(layout.annotations || []), {
+      xref: 'paper', yref: 'paper', x: 0, y: -0.23, xanchor: 'left', showarrow: false,
+      text: `CSV Code ${figureText(parsed.code ?? parsed.metadata['CSV Code'] ?? '')} · Event ${figureText(parsed.metadata['Event number'] ?? '—')} · ${comparisonVisible.filter(Boolean).length}/${items.length} comparisons shown<br>Gray bands: 95% (darker) / 99% (lighter) CI · Vertical lines: reported breakpoints${parsed.kind === 'boxes' ? '<br>Dotted line: upper cutoff · Red baseline: recombinant interval' : ''}`,
+      font: { size: 12, color: '#475569' }, align: 'left',
+    }];
+    await Plotly.newPlot(exportPlot, data, layout, { staticPlot: true });
+    await Plotly.downloadImage(exportPlot, {
     format,
-    filename: exportFilename(),
+    filename,
     width: 1600,
-    height: currentParsed.kind === 'boxes' ? 1050 : 960,
+    height: parsed.kind === 'boxes' ? 1200 : 1110,
     scale: vector ? 1 : 2,
-  });
+    });
+  } catch (error) {
+    setStatus(`Figure export failed: ${error.message || error}`, 'error');
+  } finally {
+    Plotly.purge(exportPlot);
+    exportPlot.remove();
+    els.exportFigure.disabled = false;
+  }
 });
 
 window.addEventListener('load', () => {

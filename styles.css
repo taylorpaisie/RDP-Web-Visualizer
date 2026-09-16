@@ -2,6 +2,17 @@
 @import url("dark-shell.css");
 
 /* Shared page navigation and About page. */
+.comparison-item{display:flex;align-items:center}
+.comparison-toggle{display:grid;grid-template-columns:13px minmax(0,1fr);gap:8px;flex:1;min-width:0;padding:4px;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit}
+.comparison-toggle[aria-pressed="false"]{opacity:.5}
+.comparison-toggle[aria-pressed="false"] strong{text-decoration:line-through}
+.comparison-isolate{padding:6px 8px;border:1px solid #34455c;border-radius:6px;background:#111c2c;color:#c1cce0;cursor:pointer;font:inherit;font-size:.72rem}
+.comparison-isolate:hover{background:#172438}
+.comparison-help,.buddy-note{color:#91a0b5;font-size:.76rem;line-height:1.5}
+.comparison-help{margin:8px 18px}
+.about-motto{color:#d38c8c!important;font-size:.76rem;letter-spacing:.035em;margin:10px 0}
+.export-controls{flex-wrap:wrap}
+.plot-toolbar{flex-wrap:wrap}
 .site-nav{display:flex;align-items:center;gap:4px}
 .site-nav a{display:inline-flex;align-items:center;min-height:44px;padding:9px 12px;border-radius:9px;color:#c1cce0;font-size:.82rem;font-weight:740;text-decoration:none}
 .site-nav a:hover{background:#172438;color:#fff}

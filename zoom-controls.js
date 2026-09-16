@@ -41,8 +41,13 @@
 
     const rendered = originalReact(gd, data, safeLayout, safeConfig);
     Promise.resolve(rendered).then(() => {
+      const eventButton = document.querySelector('.view-control.event');
+      if (eventButton) {
+        eventButton.disabled = !eventRange(gd);
+        eventButton.title = eventButton.disabled ? 'Both reported breakpoints are required to focus the event' : 'Zoom to breakpoints and confidence intervals';
+      }
       gd.tabIndex = 0;
-      gd.setAttribute('aria-label', `${gd.getAttribute('aria-label') || 'RDP event visualization'}. Zoom with the toolbar or plus/minus keys; arrow keys pan; double-click resets.`);
+      gd.setAttribute('aria-label', 'RDP event visualization. Zoom with the toolbar or plus/minus keys; arrow keys pan; double-click resets.');
     });
     return rendered;
   };
@@ -115,13 +120,40 @@
     plotly.relayout(gd, update);
   }
 
+  function eventRange(gd) {
+    const bounds = initialXRange(gd);
+    const metadata = gd?.__rdpEventMetadata;
+    if (!bounds || !metadata) return null;
+    const start = metadata['Beginning breakpoint site'];
+    const end = metadata['Ending breakpoint site'];
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+    // A wrapped interval needs the full alignment to show both ends.
+    if (start > end) return bounds;
+    const coordinates = [start, end];
+    for (const key of ['Beginning breakpoint 95% CI', 'Beginning breakpoint 99% CI', 'Ending breakpoint 95% CI', 'Ending breakpoint 99% CI']) {
+      const interval = metadata[key];
+      if (Array.isArray(interval)) coordinates.push(...interval.filter(Number.isFinite));
+    }
+    const lo = Math.min(...coordinates);
+    const hi = Math.max(...coordinates);
+    const padding = Math.max((hi - lo) * 0.1, (bounds[1] - bounds[0]) * 0.01);
+    return clampRange([lo - padding, hi + padding], bounds);
+  }
+
+  function zoomToEvent() {
+    const gd = plot();
+    const range = eventRange(gd);
+    if (range) setXRange(gd, range);
+  }
+
   function addStyles() {
     const style = document.createElement('style');
     style.textContent = `
-      .view-controls{display:inline-flex;align-items:center;gap:5px;padding-right:3px}
+      .view-controls{display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px;padding-right:3px}
       .view-control{min-width:34px;min-height:36px;padding:6px 9px;border:1px solid #34455c;border-radius:9px;background:#111c2c;color:#dce6f3;font:700 .78rem/1 Inter,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
       .view-control:hover{background:#172438;border-color:#52657f;transform:translateY(-1px)}
       .view-control.reset{min-width:auto;padding-inline:11px}
+      .view-control:disabled{opacity:.45;cursor:not-allowed;transform:none}
       .zoom-help{display:block;margin:0 18px 9px;color:#7f8fa5;font-size:.67rem;line-height:1.4;text-align:right}
       #rdp-plot:focus{outline:2px solid rgba(96,165,250,.55);outline-offset:-2px;border-radius:8px}
       @media(max-width:760px){.zoom-help{text-align:left}.view-control.reset{padding-inline:8px}}
@@ -154,7 +186,8 @@
     group.append(
       button('−', 'Zoom out', '', () => zoom(1 / ZOOM_IN_FACTOR)),
       button('+', 'Zoom in', '', () => zoom(ZOOM_IN_FACTOR)),
-      button('Reset', 'Reset graph to original view', 'reset', resetView),
+      button('Zoom to event', 'Zoom to breakpoints and confidence intervals', 'event', zoomToEvent),
+      button('Full alignment', 'Reset graph to the full alignment', 'reset', resetView),
     );
     exportControls.prepend(group);
 

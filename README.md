@@ -11,7 +11,14 @@ The app currently supports **RDP CSV Code 1 and Code 2**, based on real exports 
 - beginning and ending breakpoint calls;
 - 95% and 99% breakpoint confidence intervals;
 - event metadata and gene tables; and
-- high-resolution PNG export.
+- PNG, SVG, JPEG, and WebP figure export with comparison legends and annotation guidance.
+
+## Exploring and exporting figures
+
+- Click a comparison in the legend to show or hide its curves or boxes. **Only** isolates that comparison; **Show all** restores every comparison. ORFs, breakpoint calls, and confidence intervals remain visible. Loading an export resets comparison visibility.
+- **Zoom to event** fits the reported breakpoints and available 95%/99% confidence intervals with surrounding context. It is disabled when either breakpoint is missing. Intervals crossing the alignment origin use the full alignment so both ends stay visible.
+- **Full alignment** restores the original axes. The existing +/− buttons, arrow-key panning, and 0/double-click reset remain available.
+- **Export figure** saves the current view and comparison selection with a title, comparison legend, event identifier, and annotation key. Export preparation leaves the on-screen chart unchanged. The chart's separate camera shortcut is removed so downloads use this shared export flow.
 
 ## ORF frame mapping
 
@@ -107,7 +114,8 @@ A Pages deployment workflow is included under `.github/workflows/pages.yml`. If 
 - `styles.css` — responsive visual design
 - `base.css` — shared layout and component styles
 - `dark-shell.css` — dark theme (imported by `styles.css`)
-- `contact.js` — shared contact footer used on the About page
+- `contact.js` — shared contact footer used on both pages
+- `zoom-controls.js` — event zoom, full-alignment reset, and keyboard navigation
 - `rdp-parser.js` — RDP CSV Code 1 and Code 2 parser
 - `app.js` — directory access and Plotly renderer
 
