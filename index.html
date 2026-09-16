@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#0b1220" />
   <title>RDP Web Visualizer</title>
   <link rel="preconnect" href="https://cdn.plot.ly" crossorigin />
   <link rel="stylesheet" href="styles.css" />
@@ -12,108 +12,144 @@
   <script src="app.js" defer></script>
 </head>
 <body>
-  <header class="site-header">
-    <div class="shell header-inner">
-      <div>
-        <div class="eyebrow">RDP5 CSV visualization</div>
-        <h1>RDP Web Visualizer</h1>
-        <p class="lede">Turn RDP CSV Code 1 and Code 2 exports into clean, interactive event plots directly in your browser.</p>
+  <header class="app-bar">
+    <div class="shell app-bar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+        <div>
+          <div class="brand-title">RDP Web Visualizer</div>
+          <div class="brand-subtitle">Recombination event explorer</div>
+        </div>
       </div>
-      <div class="privacy-pill" title="Files are read by your browser and are not uploaded to this site.">
-        <span class="dot"></span>
-        Local file processing
+      <div class="app-bar-actions">
+        <span class="version-pill">RDP5 · CSV 1 + 2</span>
+        <span class="privacy-pill" title="Selected files stay in your browser.">
+          <span class="status-dot"></span> Local processing
+        </span>
       </div>
     </div>
   </header>
 
-  <main class="shell">
-    <section class="card controls-card">
-      <div class="control-copy">
-        <h2>Open RDP output</h2>
-        <p>Choose the directory where RDP writes its CSV exports. The page will scan for <code>.csv</code> files and automatically display the newest supported export.</p>
-      </div>
-      <div class="button-row">
-        <button id="choose-folder" class="btn primary" type="button">Choose RDP folder</button>
-        <label class="btn secondary file-button">
-          Choose one CSV
-          <input id="file-input" type="file" accept=".csv,text/csv" />
-        </label>
-        <button id="refresh-folder" class="btn ghost" type="button" disabled>Refresh folder</button>
-      </div>
-      <div id="browser-note" class="browser-note hidden"></div>
-      <div class="folder-row">
-        <div>
-          <div class="label">Current source</div>
+  <main class="shell workspace">
+    <aside class="sidebar">
+      <section class="panel source-panel">
+        <div class="panel-kicker">Data source</div>
+        <h1>Open RDP output</h1>
+        <p class="sidebar-copy">Open an RDP export folder or load a single CSV. Supported files are parsed entirely in your browser.</p>
+
+        <div class="source-actions">
+          <button id="choose-folder" class="btn primary" type="button">
+            <span class="btn-icon" aria-hidden="true">▱</span>
+            Choose RDP folder
+          </button>
+          <label class="btn secondary file-button">
+            <span class="btn-icon" aria-hidden="true">＋</span>
+            Choose one CSV
+            <input id="file-input" type="file" accept=".csv,text/csv" />
+          </label>
+          <button id="refresh-folder" class="btn ghost" type="button" disabled>Refresh folder</button>
+        </div>
+
+        <div id="browser-note" class="browser-note hidden"></div>
+
+        <div class="source-block">
+          <div class="field-label">Current source</div>
           <div id="source-label" class="source-label">No folder or file selected</div>
         </div>
-        <label class="auto-switch">
-          <input id="auto-newest" type="checkbox" checked />
-          <span>Follow newest CSV</span>
-        </label>
-      </div>
-      <div class="select-row">
-        <label for="csv-select">CSV export</label>
-        <select id="csv-select" disabled>
-          <option value="">Waiting for a CSV…</option>
-        </select>
-      </div>
-      <div id="status" class="status neutral">Choose an RDP folder or CSV file to begin.</div>
-    </section>
 
-    <section id="summary" class="summary-grid hidden" aria-label="Event summary">
-      <article class="metric-card"><div class="metric-label">Event</div><div id="metric-event" class="metric-value">—</div></article>
-      <article class="metric-card"><div class="metric-label">Breakpoints</div><div id="metric-breakpoints" class="metric-value">—</div></article>
-      <article class="metric-card"><div class="metric-label">Genes</div><div id="metric-genes" class="metric-value">—</div></article>
-      <article class="metric-card"><div class="metric-label">Comparisons</div><div id="metric-series" class="metric-value">—</div></article>
-    </section>
-
-    <section id="plot-card" class="card plot-card hidden">
-      <div class="section-heading">
-        <div>
-          <div class="eyebrow">Interactive event view</div>
-          <h2 id="plot-title">RDP event plot</h2>
-        </div>
-        <div class="button-row">
-          <select id="export-format" class="btn secondary compact" aria-label="Figure export format">
-            <option value="png">PNG</option>
-            <option value="svg">SVG</option>
-            <option value="jpeg">JPEG</option>
-            <option value="webp">WebP</option>
+        <div class="field-block">
+          <label class="field-label" for="csv-select">CSV export</label>
+          <select id="csv-select" disabled>
+            <option value="">Waiting for a CSV…</option>
           </select>
-          <button id="export-figure" class="btn secondary compact" type="button">Export figure</button>
         </div>
-      </div>
-      <div class="legend-note">
-        <span><i class="swatch ci99"></i>99% breakpoint CI</span>
-        <span><i class="swatch ci95"></i>95% breakpoint CI</span>
-        <span><i class="line-swatch breakpoint"></i>reported breakpoint</span>
-        <span>Code 2: black dotted line = upper cutoff</span>
-      </div>
-      <div id="rdp-plot" class="plot" role="img" aria-label="RDP event visualization"></div>
-    </section>
 
-    <section id="details" class="detail-grid hidden">
-      <article class="card detail-card">
-        <div class="section-heading small">
-          <div><div class="eyebrow">RDP metadata</div><h2>Event details</h2></div>
-        </div>
-        <div class="table-wrap"><table id="metadata-table"><tbody></tbody></table></div>
-      </article>
-      <article class="card detail-card">
-        <div class="section-heading small">
-          <div><div class="eyebrow">Gene map input</div><h2>Genes</h2></div>
-        </div>
-        <div class="table-wrap"><table id="gene-table"><thead><tr><th>Start</th><th>End</th><th>Frame</th><th>Orientation</th></tr></thead><tbody></tbody></table></div>
-      </article>
-    </section>
+        <label class="toggle-row">
+          <span>
+            <strong>Follow newest CSV</strong>
+            <small>Auto-refresh folder every 3 seconds</small>
+          </span>
+          <input id="auto-newest" type="checkbox" checked />
+        </label>
 
-    <section class="card about-card">
-      <h2>What this version supports</h2>
-      <p>This browser-only version is grounded on real RDP5 <strong>CSV Code 1</strong> and <strong>CSV Code 2</strong> examples. Code 1 renders pairwise-comparison curves; Code 2 reproduces the GENECONV-style transparent rectangle outlines using start, end, and height values, together with the upper cutoff and recombinant interval. Both formats include the ORF map, event metadata, breakpoint information, and RDP-matched comparison colors.</p>
-      <p class="fine-print">Nothing is uploaded to a server by this application. Folder access requires an explicit browser permission grant and works best in current Chrome or Edge on HTTPS.</p>
-    </section>
+        <div id="status" class="status neutral">Choose an RDP folder or CSV file to begin.</div>
+      </section>
+
+      <section class="panel sidebar-note">
+        <div class="panel-kicker">Workflow</div>
+        <p><strong>RDP → CSV → browser.</strong> No Python, Conda, local server, or upload step required.</p>
+      </section>
+    </aside>
+
+    <div class="main-column">
+      <section id="summary" class="summary-strip hidden" aria-label="Event summary">
+        <div class="summary-context">
+          <span id="format-badge" class="data-badge">CSV</span>
+          <span id="method-badge" class="method-badge">RDP event</span>
+        </div>
+        <div class="summary-metrics">
+          <div class="metric"><span>Event</span><strong id="metric-event">—</strong></div>
+          <div class="metric"><span>Breakpoints</span><strong id="metric-breakpoints">—</strong></div>
+          <div class="metric"><span>ORFs</span><strong id="metric-genes">—</strong></div>
+          <div class="metric"><span>Comparisons</span><strong id="metric-series">—</strong></div>
+        </div>
+      </section>
+
+      <section id="plot-card" class="panel plot-card hidden">
+        <div class="plot-toolbar">
+          <div class="plot-heading">
+            <div class="panel-kicker">Interactive event view</div>
+            <h2 id="plot-title">RDP event plot</h2>
+          </div>
+          <div class="export-controls">
+            <select id="export-format" class="compact-select" aria-label="Figure export format">
+              <option value="png">PNG</option>
+              <option value="svg">SVG</option>
+              <option value="jpeg">JPEG</option>
+              <option value="webp">WebP</option>
+            </select>
+            <button id="export-figure" class="btn secondary compact" type="button">Export figure</button>
+          </div>
+        </div>
+
+        <div id="comparison-legend" class="comparison-legend" aria-label="Comparison legend"></div>
+
+        <div class="annotation-key">
+          <span><i class="key-box ci99"></i>99% CI</span>
+          <span><i class="key-box ci95"></i>95% CI</span>
+          <span><i class="key-line breakpoint"></i>Reported breakpoint</span>
+          <span><i class="key-line cutoff"></i>Code 2 upper cutoff</span>
+        </div>
+
+        <div class="plot-frame">
+          <div id="rdp-plot" class="plot" role="img" aria-label="RDP event visualization"></div>
+        </div>
+      </section>
+
+      <section id="details" class="detail-grid hidden">
+        <article class="panel detail-card">
+          <div class="detail-heading">
+            <div><div class="panel-kicker">RDP metadata</div><h2>Event details</h2></div>
+          </div>
+          <div class="table-wrap"><table id="metadata-table"><tbody></tbody></table></div>
+        </article>
+        <article class="panel detail-card">
+          <div class="detail-heading">
+            <div><div class="panel-kicker">ORF map input</div><h2>Open reading frames</h2></div>
+          </div>
+          <div class="table-wrap"><table id="gene-table"><thead><tr><th>Start</th><th>End</th><th>Frame</th><th>Direction</th></tr></thead><tbody></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="support-note">
+        <strong>Faithful to RDP, easier to read.</strong>
+        The viewer preserves RDP coordinates, breakpoint calls, comparison colors, Code 2 box heights, cutoff values, and exported opacity while presenting them in a modern web layout.
+      </section>
+    </div>
   </main>
 
-  <footer class="shell footer">RDP Web Visualizer · teaching and exploratory visualization</footer>
+  <footer class="shell footer">RDP Web Visualizer · browser-only teaching and exploratory visualization</footer>
 </body>
 </html>
