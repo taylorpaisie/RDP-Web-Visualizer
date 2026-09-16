@@ -136,6 +136,7 @@ function renderPlot(parsed) {
     type: 'scatter', mode: 'lines', x, y: s.y,
     name: s.role ? `${s.role}<br>${s.name}` : s.name,
     line: { color: s.color, width: 2.5 },
+    opacity: 0.65,
     customdata: s.raw,
     hovertemplate: `${s.role || s.name}<br>Position %{x:,}<br>Pairwise identity %{y:.3f}<br>Raw value %{customdata}<extra></extra>`,
     xaxis: 'x2', yaxis: 'y2',
