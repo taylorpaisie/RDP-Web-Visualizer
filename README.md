@@ -4,16 +4,26 @@ A browser-only visualizer for RDP5 CSV exports. No Python, Conda, Docker, or loc
 
 The first supported format is **RDP CSV Code 1**, based on a real event-plot export from RDP v5.93. The app recreates the event view as an interactive Plotly figure with:
 
-- the gene map from the export;
+- a six-track ORF map labeled `+1`, `+2`, `+3`, `-1`, `-2`, `-3`;
+- ORF direction arrowheads derived from the RDP orientation field;
 - three pairwise-comparison curves;
 - beginning and ending breakpoint calls;
 - 95% and 99% breakpoint confidence intervals;
 - event metadata and gene tables; and
 - high-resolution PNG export.
 
+## ORF frame mapping
+
+The Code 1 export provides a frame and an orientation for each ORF. The web view combines those into a signed reading-frame track:
+
+- orientation `1` (left → right) maps to `+1`, `+2`, or `+3`;
+- orientation `2` (right → left) maps to `-1`, `-2`, or `-3`.
+
+For example, frame `1` + orientation `1` is shown on `+1`, while frame `1` + orientation `2` is shown on `-1`. Directional arrowheads are also drawn at the end of each ORF.
+
 ## Use the web app
 
-Once GitHub Pages is enabled for this repository, open:
+Open:
 
 **https://taylorpaisie.github.io/RDP-Web-Visualizer/**
 
@@ -67,7 +77,8 @@ A Pages deployment workflow is included under `.github/workflows/pages.yml`. If 
 
 - `index.html` — app shell and controls
 - `styles.css` — responsive visual design
-- `app.js` — directory access, Code 1 parser, and Plotly renderer
+- `rdp-parser.js` — RDP CSV Code 1 parser
+- `app.js` — directory access and Plotly renderer
 
 ## Scope
 

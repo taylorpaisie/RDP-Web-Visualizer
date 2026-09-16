@@ -31,7 +31,30 @@ let currentParsed = null;
 let pollTimer = null;
 let scanInProgress = false;
 
-const FRAME_Y = { 1: 2.5, 4: 2.5, 2: 1.5, 5: 1.5, 3: 0.5, 6: 0.5 };
+const ORF_TRACK_Y = {
+  '+1': 5.5,
+  '+2': 4.5,
+  '+3': 3.5,
+  '-1': 2.5,
+  '-2': 1.5,
+  '-3': 0.5,
+};
+
+function normalizedReadingFrame(frame) {
+  const value = Math.abs(Number(frame));
+  if (!Number.isFinite(value) || value < 1) return 1;
+  return ((value - 1) % 3) + 1;
+}
+
+function signedFrameLabel(gene) {
+  const frame = normalizedReadingFrame(gene.frame);
+  const sign = gene.orientation === 2 ? '-' : '+';
+  return `${sign}${frame}`;
+}
+
+function signedFrameY(gene) {
+  return ORF_TRACK_Y[signedFrameLabel(gene)] ?? 5.5;
+}
 
 function setStatus(message, kind = 'neutral') {
   els.status.textContent = message;
@@ -70,23 +93,46 @@ function breakpointShape(x, color) {
 
 function renderPlot(parsed) {
   const { genes, metadata, x, series } = parsed;
+
   const geneTrace = {
     type: 'bar', orientation: 'h',
     x: genes.map((g) => g.length),
     base: genes.map((g) => g.start),
-    y: genes.map((g) => FRAME_Y[g.frame] ?? 1.5),
-    width: 0.62,
+    y: genes.map(signedFrameY),
+    width: 0.56,
     marker: {
       color: genes.map((g) => g.orientation === 1 ? '#111827' : '#64748b'),
       line: { color: '#111827', width: 0.4 },
     },
-    customdata: genes.map((g) => [g.start, g.end, g.frame, g.orientation]),
-    hovertemplate: 'Gene %{customdata[0]:,}–%{customdata[1]:,}<br>Frame %{customdata[2]}<br>Orientation %{customdata[3]}<extra></extra>',
+    customdata: genes.map((g) => [
+      g.start,
+      g.end,
+      signedFrameLabel(g),
+      g.orientation === 1 ? 'Left → right' : 'Right → left',
+    ]),
+    hovertemplate: 'ORF %{customdata[0]:,}–%{customdata[1]:,}<br>Frame %{customdata[2]}<br>%{customdata[3]}<extra></extra>',
     showlegend: false,
     xaxis: 'x', yaxis: 'y',
   };
 
-  const traces = [geneTrace, ...series.map((s) => ({
+  const geneDirectionTrace = {
+    type: 'scatter',
+    mode: 'markers',
+    x: genes.map((g) => g.orientation === 2 ? g.start : g.end),
+    y: genes.map(signedFrameY),
+    marker: {
+      symbol: genes.map((g) => g.orientation === 2 ? 'triangle-left' : 'triangle-right'),
+      size: 10,
+      color: genes.map((g) => g.orientation === 1 ? '#111827' : '#64748b'),
+      line: { color: '#ffffff', width: 0.5 },
+    },
+    customdata: genes.map((g) => [signedFrameLabel(g), g.orientation === 1 ? 'Left → right' : 'Right → left']),
+    hovertemplate: 'Frame %{customdata[0]}<br>%{customdata[1]}<extra></extra>',
+    showlegend: false,
+    xaxis: 'x', yaxis: 'y',
+  };
+
+  const traces = [geneTrace, geneDirectionTrace, ...series.map((s) => ({
     type: 'scatter', mode: 'lines', x, y: s.y,
     name: s.role ? `${s.role}<br>${s.name}` : s.name,
     line: { color: s.color, width: 2.5 },
@@ -107,17 +153,20 @@ function renderPlot(parsed) {
   const maxX = metadata['Maximum X-axis value'] || Math.max(...x);
   const layout = {
     autosize: true,
-    height: 760,
-    margin: { l: 58, r: 22, t: 46, b: 58 },
+    height: 830,
+    margin: { l: 64, r: 22, t: 46, b: 58 },
     paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff',
     font: { family: 'Inter, ui-sans-serif, system-ui, sans-serif', color: '#0f172a', size: 12 },
     barmode: 'overlay', hovermode: 'x unified',
-    legend: { orientation: 'h', x: 1, xanchor: 'right', y: 0.69, yanchor: 'bottom', font: { size: 10 } },
+    legend: { orientation: 'h', x: 1, xanchor: 'right', y: 0.64, yanchor: 'bottom', font: { size: 10 } },
     xaxis: { domain: [0, 1], anchor: 'y', range: [0, maxX], showticklabels: false, showgrid: false, zeroline: false },
     yaxis: {
-      domain: [0.78, 1], anchor: 'x', range: [-0.1, 3.1],
-      tickmode: 'array', tickvals: [0.5, 1.5, 2.5], ticktext: ['Bottom', 'Middle', 'Top'],
-      title: { text: 'Gene frame', standoff: 8 }, showgrid: false, zeroline: false,
+      domain: [0.72, 1], anchor: 'x', range: [0, 6],
+      tickmode: 'array',
+      tickvals: [0.5, 1.5, 2.5, 3.5, 4.5, 5.5],
+      ticktext: ['−3', '−2', '−1', '+3', '+2', '+1'],
+      title: { text: 'ORF frame', standoff: 8 },
+      gridcolor: '#eef2f7', gridwidth: 1, zeroline: false,
     },
     xaxis2: {
       domain: [0, 1], anchor: 'y2', range: [0, maxX], matches: 'x',
@@ -125,13 +174,13 @@ function renderPlot(parsed) {
       gridcolor: '#edf2f7', zeroline: false,
     },
     yaxis2: {
-      domain: [0, 0.69], anchor: 'x2', range: [0, 1.02],
+      domain: [0, 0.62], anchor: 'x2', range: [0, 1.02],
       title: { text: metadata['Y-axis label'] || 'Pairwise identity', standoff: 10 },
       gridcolor: '#edf2f7', zeroline: false,
     },
     shapes,
     annotations: [
-      { xref: 'paper', yref: 'paper', x: 0, y: 1.035, text: '<b>Gene map</b>', showarrow: false, xanchor: 'left', font: { size: 13, color: '#334155' } },
+      { xref: 'paper', yref: 'paper', x: 0, y: 1.035, text: '<b>ORF map · six reading frames</b>', showarrow: false, xanchor: 'left', font: { size: 13, color: '#334155' } },
     ],
   };
 
@@ -160,7 +209,7 @@ function renderTables(parsed) {
   for (const gene of parsed.genes) {
     const tr = document.createElement('tr');
     const orientation = gene.orientation === 1 ? 'Left → right' : 'Right → left';
-    for (const value of [gene.start, gene.end, gene.frame, orientation]) {
+    for (const value of [gene.start, gene.end, signedFrameLabel(gene), orientation]) {
       const td = document.createElement('td');
       td.textContent = value;
       tr.append(td);
