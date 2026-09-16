@@ -1,1 +1,197 @@
 @import url("base.css");
+
+/* Dark scientific workspace theme. The underlying RDP colors and data stay unchanged. */
+:root{
+  --navy-950:#030712;
+  --navy-900:#07101e;
+  --navy-800:#0d1a2d;
+  --ink:#e8eef7;
+  --ink-soft:#c2cede;
+  --muted:#8fa0b6;
+  --line:#263449;
+  --line-strong:#35465d;
+  --panel:#0d1624;
+  --bg:#060b13;
+  --blue:#3b82f6;
+  --blue-dark:#2563eb;
+  --teal:#2dd4bf;
+  --success:#34d399;
+  --danger:#f87171;
+  --warning:#fbbf24;
+  --shadow:0 16px 42px rgba(0,0,0,.28);
+}
+
+html{color-scheme:dark}
+body{
+  color:var(--ink);
+  background:
+    radial-gradient(circle at 78% -10%,rgba(37,99,235,.11),transparent 31rem),
+    radial-gradient(circle at 8% 12%,rgba(127,29,29,.075),transparent 27rem),
+    linear-gradient(180deg,#07101a 0,#050a11 44%,#04080e 100%);
+}
+
+.app-bar{
+  background:linear-gradient(135deg,#020711,#081222 63%,#101827);
+  border-bottom-color:#263449;
+  box-shadow:0 10px 28px rgba(0,0,0,.32);
+}
+.brand-mark{
+  background:linear-gradient(145deg,#2563eb,#1d4ed8);
+  box-shadow:0 8px 24px rgba(37,99,235,.25),0 0 0 1px rgba(147,197,253,.11) inset;
+}
+.brand-title{color:#f8fafc}
+.brand-subtitle{color:#8ea0b7}
+.version-pill,.privacy-pill{
+  background:#101a2a;
+  border-color:#2b3b52;
+  color:#c1cce0;
+}
+
+.panel,
+.summary-strip{
+  background:linear-gradient(180deg,#101a2a,#0c1522);
+  border-color:#263449;
+  box-shadow:var(--shadow);
+}
+.panel-kicker{color:#8293aa}
+h1,h2{color:#f1f5f9}
+.sidebar-copy,.sidebar-note p,.support-note,.references-intro{color:#91a0b5!important}
+.sidebar-note{background:linear-gradient(180deg,#101a2a,#0b1421)}
+
+.btn.primary{
+  color:#fff;
+  background:linear-gradient(135deg,#2563eb,#3b82f6);
+  box-shadow:0 8px 20px rgba(37,99,235,.22);
+}
+.btn.primary:hover:not(:disabled){background:linear-gradient(135deg,#1d4ed8,#2563eb)}
+.btn.secondary{
+  color:#dce6f3;
+  background:#111c2c;
+  border-color:#34455c;
+}
+.btn.secondary:hover:not(:disabled){background:#172438;border-color:#52657f}
+.btn.ghost{
+  color:#afbdd0;
+  background:#131d2b;
+  border-color:#2a384c;
+}
+.btn.ghost:hover:not(:disabled){background:#182536}
+
+.source-block,.field-block,.citation-mini{border-top-color:#253247!important}
+.field-label{color:#8191a8}
+.source-label{color:#d3ddea}
+select,
+.compact-select{
+  color:#e5edf7;
+  background:#0b1420;
+  border-color:#35465d;
+}
+select:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.16)}
+.toggle-row{
+  color:#d1d9e6;
+  background:#0b1420;
+  border-color:#253348;
+}
+.toggle-row small{color:#74869e}
+.status.neutral{color:#9dacbf;background:#0b1420;border-color:#263449}
+.status.success{color:#6ee7b7;background:rgba(6,78,59,.22);border-color:#12664e}
+.status.error{color:#fca5a5;background:rgba(127,29,29,.20);border-color:#7f1d1d}
+.status.warning{color:#fde68a;background:rgba(120,53,15,.20);border-color:#78350f}
+.browser-note{color:#fdba74;background:rgba(124,45,18,.18);border-color:#7c2d12}
+
+.summary-strip{border-color:#29384e}
+.data-badge{
+  color:#93c5fd;
+  background:rgba(30,64,175,.22);
+  border-color:#3159a8;
+}
+.method-badge{
+  color:#5eead4;
+  background:rgba(13,148,136,.12);
+  border-color:#1b6f69;
+}
+.metric{border-left-color:#27364b}
+.metric span{color:#71839a}
+.metric strong{color:#f1f5f9}
+
+.plot-card{background:#0b1420}
+.plot-toolbar{border-bottom-color:#243247}
+.plot-heading h2{color:#f1f5f9}
+.comparison-item{
+  background:#0e1826;
+  border-color:#27364a;
+}
+.comparison-item strong{color:#d8e2ef}
+.comparison-item small{color:#7789a0}
+.annotation-key{color:#91a0b5}
+.key-box.ci99{background:rgba(148,163,184,.11);border-color:rgba(148,163,184,.28)}
+.key-box.ci95{background:rgba(148,163,184,.20);border-color:rgba(148,163,184,.38)}
+.key-line{border-top-color:#94a3b8}
+.key-line.cutoff{border-top-color:#cbd5e1}
+.key-arrow{color:#aebdd0!important}
+.plot-frame{
+  background:#09111c;
+  border-color:#27364a;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.018),0 12px 30px rgba(0,0,0,.16);
+}
+.plot{background:#09111c}
+
+.detail-card{background:linear-gradient(180deg,#101a2a,#0b1420)}
+.table-wrap{background:#0a1320;border-color:#27364a}
+table{color:#b9c6d7}
+th{
+  color:#93a4ba;
+  background:#111c2b;
+  border-bottom-color:#2a394d;
+}
+td{border-bottom-color:#202d40}
+td:first-child{color:#d5dfeb}
+tbody tr:hover{background:#111c2a}
+.support-note strong{color:#a9b7c9}
+.footer{color:#6f8199}
+
+/* References / provenance styles are defined inline in index.html; override them for dark mode. */
+.citation-mini p{color:#90a0b5!important}
+.citation-mini a,.references-panel a{color:#60a5fa!important}
+.references-panel{background:linear-gradient(180deg,#101a2a,#0b1420)!important}
+.references-heading h2{color:#f1f5f9!important}
+.reference-card{
+  background:#0c1623!important;
+  border-color:#27364a!important;
+}
+.reference-card strong{color:#dbe5f1!important}
+.reference-card p{color:#91a0b5!important}
+.provenance-note{
+  color:#96a6ba!important;
+  background:#0a1320!important;
+  border-color:#27364a!important;
+}
+
+/* Infernal easter eggs: warmer and a little more legible on dark surfaces. */
+.infernal-whisper{color:#c98c8c!important;opacity:.42!important}
+.infernal-whisper:hover{color:#fca5a5!important;opacity:.88!important}
+.infernal-note{color:#d38c8c!important;opacity:.52!important}
+.infernal-note:hover{color:#fecaca!important;opacity:.92!important}
+.brand-infernal{color:#fca5a5!important;opacity:.62!important}
+
+/* Plotly dark treatment. This is visual-only; RDP series colors and coordinates are untouched. */
+.js-plotly-plot .plotly .main-svg{background:#09111c!important}
+.js-plotly-plot .plotly .bg{fill:#0b1420!important}
+.js-plotly-plot .plotly .gridlayer path{stroke:#223149!important;stroke-opacity:.78!important}
+.js-plotly-plot .plotly .xlines-above path,
+.js-plotly-plot .plotly .ylines-above path,
+.js-plotly-plot .plotly .xlines-below path,
+.js-plotly-plot .plotly .ylines-below path{stroke:#52647d!important}
+.js-plotly-plot .plotly .xtick text,
+.js-plotly-plot .plotly .ytick text,
+.js-plotly-plot .plotly .annotation-text,
+.js-plotly-plot .plotly .xtitle,
+.js-plotly-plot .plotly .ytitle{fill:#b9c7d8!important;color:#b9c7d8!important}
+.js-plotly-plot .plotly .barlayer .trace.bars path{fill:#d7e0eb!important;stroke:#0b1420!important}
+.js-plotly-plot .plotly .modebar{background:rgba(7,16,30,.82)!important;border-radius:8px}
+.js-plotly-plot .plotly .modebar-btn path{fill:#94a3b8!important}
+.js-plotly-plot .plotly .modebar-btn:hover path{fill:#e2e8f0!important}
+
+@media (max-width:860px){
+  body{background:#060b13}
+}
