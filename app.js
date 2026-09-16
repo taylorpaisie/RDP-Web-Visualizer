@@ -91,9 +91,27 @@ function breakpointShape(x, color) {
   };
 }
 
-function renderPlot(parsed) {
-  const { genes, metadata, x, series } = parsed;
+function cutoffShape(y) {
+  if (!Number.isFinite(y)) return null;
+  return {
+    type: 'line', xref: 'x2 domain', yref: 'y2',
+    x0: 0, x1: 1, y0: y, y1: y,
+    line: { color: '#475569', width: 1.5, dash: 'dot' },
+  };
+}
 
+function boxShape(box, color, opacity) {
+  return {
+    type: 'rect', xref: 'x2', yref: 'y2',
+    x0: box.start, x1: box.end, y0: 0, y1: box.height,
+    line: { color, width: 1 },
+    fillcolor: color,
+    opacity,
+    layer: 'below',
+  };
+}
+
+function buildOrfTraces(genes) {
   const geneTrace = {
     type: 'bar', orientation: 'h',
     x: genes.map((g) => g.length),
@@ -132,33 +150,67 @@ function renderPlot(parsed) {
     xaxis: 'x', yaxis: 'y',
   };
 
-  const traces = [geneTrace, geneDirectionTrace, ...series.map((s) => ({
-    type: 'scatter', mode: 'lines', x, y: s.y,
-    name: s.role ? `${s.role}<br>${s.name}` : s.name,
-    line: { color: s.color, width: 2.5 },
-    opacity: 0.5,
-    customdata: s.raw,
-    hovertemplate: `${s.role || s.name}<br>Position %{x:,}<br>Pairwise identity %{y:.3f}<br>Raw value %{customdata}<extra></extra>`,
-    xaxis: 'x2', yaxis: 'y2',
-  }))];
+  return [geneTrace, geneDirectionTrace];
+}
 
-  const shapes = [
-    ciShape(metadata['Beginning breakpoint 99% CI'], 'rgba(99,102,241,0.10)'),
-    ciShape(metadata['Beginning breakpoint 95% CI'], 'rgba(99,102,241,0.20)'),
-    ciShape(metadata['Ending breakpoint 99% CI'], 'rgba(239,68,68,0.09)'),
-    ciShape(metadata['Ending breakpoint 95% CI'], 'rgba(239,68,68,0.17)'),
+function buildCommonShapes(metadata) {
+  return [
+    ciShape(metadata['Beginning breakpoint 99% CI'], 'rgba(100,116,139,0.10)'),
+    ciShape(metadata['Beginning breakpoint 95% CI'], 'rgba(100,116,139,0.20)'),
+    ciShape(metadata['Ending breakpoint 99% CI'], 'rgba(100,116,139,0.10)'),
+    ciShape(metadata['Ending breakpoint 95% CI'], 'rgba(100,116,139,0.20)'),
     breakpointShape(metadata['Beginning breakpoint site'], '#4338ca'),
     breakpointShape(metadata['Ending breakpoint site'], '#b91c1c'),
   ].filter(Boolean);
+}
 
-  const maxX = metadata['Maximum X-axis value'] || Math.max(...x);
+function renderPlot(parsed) {
+  const { genes, metadata } = parsed;
+  const traces = buildOrfTraces(genes);
+  const shapes = buildCommonShapes(metadata);
+  const maxX = metadata['Maximum X-axis value'] || 1;
+  let yRange = [0, 1.02];
+  let hovermode = 'x unified';
+
+  if (parsed.kind === 'lines') {
+    for (const s of parsed.series) {
+      traces.push({
+        type: 'scatter', mode: 'lines', x: parsed.x, y: s.y,
+        name: s.role ? `${s.role}<br>${s.name}` : s.name,
+        line: { color: s.color, width: 2.5 },
+        opacity: 0.5,
+        customdata: s.raw,
+        hovertemplate: `${s.role || s.name}<br>Position %{x:,}<br>Pairwise identity %{y:.3f}<br>Raw value %{customdata}<extra></extra>`,
+        xaxis: 'x2', yaxis: 'y2',
+      });
+    }
+  } else if (parsed.kind === 'boxes') {
+    const opacity = Math.max(0, Math.min(1, Number(parsed.transparency) || 0.25));
+    for (const batch of parsed.batches) {
+      for (const box of batch.boxes) shapes.push(boxShape(box, batch.color, opacity));
+      traces.push({
+        type: 'scatter', mode: 'lines',
+        x: [null], y: [null],
+        name: batch.role ? `${batch.role}<br>${batch.name}` : batch.name,
+        line: { color: batch.color, width: 3 },
+        hoverinfo: 'skip',
+        xaxis: 'x2', yaxis: 'y2',
+      });
+    }
+    const cutoff = cutoffShape(parsed.upperCutoff);
+    if (cutoff) shapes.push(cutoff);
+    const maxHeight = Number.isFinite(parsed.maxHeight) ? parsed.maxHeight : 1;
+    yRange = [0, Math.max(1, maxHeight * 1.035)];
+    hovermode = 'closest';
+  }
+
   const layout = {
     autosize: true,
     height: 830,
     margin: { l: 64, r: 22, t: 46, b: 58 },
     paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff',
     font: { family: 'Inter, ui-sans-serif, system-ui, sans-serif', color: '#0f172a', size: 12 },
-    barmode: 'overlay', hovermode: 'x unified',
+    barmode: 'overlay', hovermode,
     legend: { orientation: 'h', x: 1, xanchor: 'right', y: 0.64, yanchor: 'bottom', font: { size: 10 } },
     xaxis: { domain: [0, 1], anchor: 'y', range: [0, maxX], showticklabels: false, showgrid: false, zeroline: false },
     yaxis: {
@@ -175,8 +227,8 @@ function renderPlot(parsed) {
       gridcolor: '#edf2f7', zeroline: false,
     },
     yaxis2: {
-      domain: [0, 0.62], anchor: 'x2', range: [0, 1.02],
-      title: { text: metadata['Y-axis label'] || 'Pairwise identity', standoff: 10 },
+      domain: [0, 0.62], anchor: 'x2', range: yRange,
+      title: { text: metadata['Y-axis label'] || (parsed.kind === 'boxes' ? '-Log(KA p-val)' : 'Pairwise identity'), standoff: 10 },
       gridcolor: '#edf2f7', zeroline: false,
     },
     shapes,
@@ -227,17 +279,19 @@ function renderParsed(parsed) {
   els.metricBreakpoints.textContent = Number.isFinite(m['Beginning breakpoint site']) && Number.isFinite(m['Ending breakpoint site'])
     ? `${m['Beginning breakpoint site'].toLocaleString()}–${m['Ending breakpoint site'].toLocaleString()}` : '—';
   els.metricGenes.textContent = parsed.genes.length.toLocaleString();
-  els.metricSeries.textContent = parsed.series.length.toLocaleString();
+  els.metricSeries.textContent = parsed.kind === 'boxes'
+    ? parsed.batches.length.toLocaleString()
+    : parsed.series.length.toLocaleString();
   renderPlot(parsed);
   renderTables(parsed);
   showApp();
-  setStatus(`Loaded ${parsed.filename} · RDP CSV Code ${m['CSV Code']} · ${parsed.x.length.toLocaleString()} plot rows`, 'success');
+  setStatus(`Loaded ${parsed.filename} · RDP CSV Code ${m['CSV Code']} · ${parsed.rowCount.toLocaleString()} plot rows`, 'success');
 }
 
 async function readAndRenderFile(file) {
   try {
     const text = await file.text();
-    const parsed = window.RDPParser.parseRdpCode1Csv(text, file.name);
+    const parsed = window.RDPParser.parseRdpCsv(text, file.name);
     renderParsed(parsed);
   } catch (error) {
     console.error(error);
