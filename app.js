@@ -9,6 +9,7 @@ const els = {
   sourceLabel: document.querySelector('#source-label'),
   status: document.querySelector('#status'),
   browserNote: document.querySelector('#browser-note'),
+  emptyState: document.querySelector('#empty-state'),
   summary: document.querySelector('#summary'),
   plotCard: document.querySelector('#plot-card'),
   details: document.querySelector('#details'),
@@ -66,12 +67,14 @@ function setStatus(message, kind = 'neutral') {
 }
 
 function showApp() {
+  els.emptyState.classList.add('hidden');
   els.summary.classList.remove('hidden');
   els.plotCard.classList.remove('hidden');
   els.details.classList.remove('hidden');
 }
 
 function hideApp() {
+  els.emptyState.classList.remove('hidden');
   els.summary.classList.add('hidden');
   els.plotCard.classList.add('hidden');
   els.details.classList.add('hidden');
