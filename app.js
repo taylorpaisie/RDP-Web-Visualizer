@@ -216,6 +216,7 @@ function renderPlot(parsed) {
   const legend = { orientation: 'h', x: 1, xanchor: 'right', y: 0.64, yanchor: 'bottom', font: { size: 10 } };
   let x2Ticks = null;
   let y2Ticks = null;
+  let y2TickText = null;
 
   if (parsed.kind === 'lines') {
     for (const s of parsed.series) {
@@ -243,14 +244,25 @@ function renderPlot(parsed) {
     annotations.push(...code2BatchAnnotations(parsed));
 
     const maxHeight = Number.isFinite(parsed.maxHeight) ? parsed.maxHeight : 1;
-    yRange = [0, Math.max(1, Math.ceil(maxHeight * 10) / 10 + 0.5)];
+    const top = Math.max(1, Math.ceil((maxHeight + 0.45) * 10) / 10);
+    yRange = [0, top];
     hovermode = 'closest';
     plotBackground = '#dcdcdc';
     y2Grid = 'rgba(0,0,0,0)';
     bottomMargin = 118;
-    x2Ticks = [1, Math.round(maxX * 0.25), Math.round(maxX * 0.5), Math.round(maxX * 0.75), maxX];
-    const top = yRange[1];
+    x2Ticks = [
+      1,
+      Math.floor(maxX * 0.25),
+      Math.floor(maxX * 0.5),
+      Math.round(maxX * 0.75),
+      maxX,
+    ];
     y2Ticks = Array.from({ length: 7 }, (_, i) => (top * i) / 6);
+    y2TickText = y2Ticks.map((value, i) => {
+      if (i === 0) return '0.00';
+      if (i === 1) return (Math.floor(value * 100) / 100).toFixed(2);
+      return (Math.floor(value * 10) / 10).toFixed(1);
+    });
   }
 
   const layout = {
@@ -291,7 +303,7 @@ function renderPlot(parsed) {
       showline: true,
       linecolor: '#222222',
       linewidth: 1,
-      ...(y2Ticks ? { tickmode: 'array', tickvals: y2Ticks, tickformat: '.3g' } : {}),
+      ...(y2Ticks ? { tickmode: 'array', tickvals: y2Ticks, ticktext: y2TickText } : {}),
     },
     shapes,
     annotations,
