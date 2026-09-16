@@ -12,10 +12,11 @@
   <script src="app.js" defer></script>
 </head>
 <body>
+  <!-- Hail thyself. Question everything. -->
   <header class="app-bar">
     <div class="shell app-bar-inner">
       <div class="brand">
-        <div class="brand-mark" aria-hidden="true">
+        <div class="brand-mark" aria-hidden="true" title="Hail thyself.">
           <span></span><span></span><span></span>
         </div>
         <div>
@@ -80,6 +81,7 @@
       <section class="panel sidebar-note">
         <div class="panel-kicker">Workflow</div>
         <p><strong>RDP → CSV → browser.</strong> No Python, Conda, local server, or upload step required.</p>
+        <span class="infernal-whisper whisper-inline" aria-hidden="true">Non serviam.</span>
       </section>
     </aside>
 
@@ -116,11 +118,13 @@
 
         <div id="comparison-legend" class="comparison-legend" aria-label="Comparison legend"></div>
 
-        <div class="annotation-key">
+        <div class="annotation-key" aria-label="RDP visual layers">
+          <span><i class="key-arrow" aria-hidden="true">→</i>ORF direction / signed frame</span>
           <span><i class="key-box ci99"></i>99% CI</span>
           <span><i class="key-box ci95"></i>95% CI</span>
           <span><i class="key-line breakpoint"></i>Reported breakpoint</span>
           <span><i class="key-line cutoff"></i>Code 2 upper cutoff</span>
+          <span><i class="key-line recombinant"></i>Code 2 recombinant interval</span>
         </div>
 
         <div class="plot-frame">
@@ -145,11 +149,15 @@
 
       <section class="support-note">
         <strong>Faithful to RDP, easier to read.</strong>
-        The viewer preserves RDP coordinates, breakpoint calls, comparison colors, Code 2 box heights, cutoff values, and exported opacity while presenting them in a modern web layout.
+        The viewer preserves RDP coordinates, breakpoint calls, comparison colors, Code 1 curves, Code 2 box geometry and heights, cutoff values, recombinant intervals, ORF direction, and exported opacity while presenting them in a modern web layout.
+        <span class="infernal-whisper whisper-inline" aria-hidden="true">Solve et coagula.</span>
       </section>
     </div>
   </main>
 
-  <footer class="shell footer">RDP Web Visualizer · browser-only teaching and exploratory visualization</footer>
+  <footer class="shell footer">
+    <span>RDP Web Visualizer · browser-only teaching and exploratory visualization</span>
+    <span class="infernal-whisper" aria-hidden="true">Hail thyself.</span>
+  </footer>
 </body>
 </html>
