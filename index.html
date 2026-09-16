@@ -68,7 +68,7 @@
 
   <main class="shell workspace">
     <aside class="sidebar">
-      <section class="panel source-panel">
+      <section id="data-source" class="panel source-panel">
         <div class="panel-kicker">Data source</div>
         <h1>Open RDP output</h1>
         <p class="sidebar-copy">Open an RDP export folder or load a single CSV. Supported files are parsed entirely in your browser.</p>
@@ -124,6 +124,41 @@
     </aside>
 
     <div class="main-column">
+      <section id="empty-state" class="panel empty-state">
+        <div class="empty-copy">
+          <div class="panel-kicker">Recombination workspace</div>
+          <h1>See RDP events at a glance.</h1>
+          <p>Open an RDP CSV export to turn breakpoint calls, parental comparisons, confidence intervals, and ORFs into one focused interactive figure.</p>
+          <div class="empty-features" aria-label="Visualization features">
+            <span><strong>01</strong> Locate breakpoints</span>
+            <span><strong>02</strong> Compare parents</span>
+            <span><strong>03</strong> Inspect ORFs</span>
+          </div>
+          <a class="btn primary empty-cta" href="#data-source">Choose an RDP source</a>
+        </div>
+        <div class="genome-preview" aria-label="Decorative preview of a recombination event visualization">
+          <div class="preview-toolbar"><span>Event overview</span><i></i><i></i><i></i></div>
+          <div class="preview-orf">
+            <span class="orf-track orf-a"></span>
+            <span class="orf-track orf-b"></span>
+            <span class="orf-track orf-c"></span>
+            <span class="orf-track orf-d"></span>
+          </div>
+          <div class="preview-chart">
+            <span class="preview-ci"></span>
+            <span class="preview-break start"></span>
+            <span class="preview-break end"></span>
+            <svg viewBox="0 0 600 170" preserveAspectRatio="none" aria-hidden="true">
+              <path class="curve curve-one" d="M0 115 C65 108 92 68 146 74 S232 124 286 95 S375 44 430 68 S525 126 600 88"/>
+              <path class="curve curve-two" d="M0 82 C70 70 106 122 165 102 S257 53 318 72 S404 119 470 94 S545 56 600 64"/>
+              <path class="curve curve-three" d="M0 132 C80 112 121 96 178 116 S268 136 330 108 S421 79 485 107 S554 124 600 112"/>
+            </svg>
+            <span class="preview-region">candidate interval</span>
+          </div>
+          <div class="preview-axis"><span>Alignment position</span><span>Interactive zoom + hover</span></div>
+        </div>
+      </section>
+
       <section id="summary" class="summary-strip hidden" aria-label="Event summary">
         <div class="summary-context">
           <span id="format-badge" class="data-badge">CSV</span>
