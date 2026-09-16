@@ -270,3 +270,69 @@ input:focus-visible{
   *,*::before,*::after{transition:none!important}
   .genome-preview{transform:none}
 }
+
+/* Infernal microcopy and signed-frame color system. */
+.empty-infernal{
+  margin-top:12px;
+  color:#e3a0a0!important;
+  opacity:.62!important;
+}
+.preview-infernal{
+  position:absolute;
+  right:18px;
+  bottom:-22px;
+  color:#9b3a3a!important;
+  opacity:.5!important;
+}
+.genome-preview{margin-bottom:22px}
+
+.orf-a{background:#2563eb;color:#2563eb}
+.orf-b{background:#0891b2;color:#0891b2}
+.orf-c{background:#ea580c;color:#ea580c}
+.orf-d{background:#9333ea;color:#9333ea}
+
+.orf-frame-key{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:7px;
+  margin:11px 18px 0;
+  padding:10px 12px;
+  border:1px solid #27364a;
+  border-radius:10px;
+  background:#0e1826;
+  color:#aebdd0;
+  font-size:.69rem;
+  font-weight:760;
+}
+.orf-frame-key > span{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
+.orf-frame-key i{
+  width:11px;
+  height:8px;
+  border-radius:2px;
+  background:var(--orf-color);
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--orf-color) 18%,transparent);
+}
+.orf-key-label{
+  margin-right:3px;
+  color:#dbe5f1;
+  font-size:.66rem;
+  font-weight:850;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.orf-infernal{
+  margin-left:auto;
+  color:#c98c8c!important;
+  opacity:.45!important;
+}
+
+@media (max-width:620px){
+  .orf-frame-key{margin-inline:8px}
+  .orf-infernal{width:100%;margin-left:0}
+  .preview-infernal{right:12px}
+}
