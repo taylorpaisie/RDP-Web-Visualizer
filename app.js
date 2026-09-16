@@ -14,7 +14,8 @@ const els = {
   details: document.querySelector('#details'),
   plot: document.querySelector('#rdp-plot'),
   plotTitle: document.querySelector('#plot-title'),
-  downloadPng: document.querySelector('#download-png'),
+  exportFormat: document.querySelector('#export-format'),
+  exportFigure: document.querySelector('#export-figure'),
   metricEvent: document.querySelector('#metric-event'),
   metricBreakpoints: document.querySelector('#metric-breakpoints'),
   metricGenes: document.querySelector('#metric-genes'),
@@ -73,6 +74,15 @@ function hideApp() {
   els.details.classList.add('hidden');
 }
 
+function hexToRgba(hex, alpha) {
+  const clean = String(hex || '').replace('#', '');
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return `rgba(0,0,0,${alpha})`;
+  const r = Number.parseInt(clean.slice(0, 2), 16);
+  const g = Number.parseInt(clean.slice(2, 4), 16);
+  const b = Number.parseInt(clean.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 function ciShape(bounds, fillcolor) {
   if (!bounds || bounds.length !== 2) return null;
   return {
@@ -87,7 +97,7 @@ function breakpointShape(x, color) {
   return {
     type: 'line', xref: 'x2', yref: 'y2 domain',
     x0: x, x1: x, y0: 0, y1: 1,
-    line: { color, width: 2 },
+    line: { color, width: 1.8 },
   };
 }
 
@@ -96,7 +106,19 @@ function cutoffShape(y) {
   return {
     type: 'line', xref: 'x2 domain', yref: 'y2',
     x0: 0, x1: 1, y0: y, y1: y,
-    line: { color: '#475569', width: 1.5, dash: 'dot' },
+    line: { color: '#111111', width: 1.25, dash: 'dot' },
+  };
+}
+
+function recombinantBaselineShape(metadata) {
+  const start = metadata['Beginning breakpoint site'];
+  const end = metadata['Ending breakpoint site'];
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  return {
+    type: 'line', xref: 'x2', yref: 'y2',
+    x0: start, x1: end, y0: 0, y1: 0,
+    line: { color: '#ff3b30', width: 4 },
+    layer: 'above',
   };
 }
 
@@ -104,10 +126,9 @@ function boxShape(box, color, opacity) {
   return {
     type: 'rect', xref: 'x2', yref: 'y2',
     x0: box.start, x1: box.end, y0: 0, y1: box.height,
-    line: { color, width: 1 },
-    fillcolor: color,
-    opacity,
-    layer: 'below',
+    line: { color: hexToRgba(color, opacity), width: 1.15 },
+    fillcolor: 'rgba(0,0,0,0)',
+    layer: 'above',
   };
 }
 
@@ -155,22 +176,44 @@ function buildOrfTraces(genes) {
 
 function buildCommonShapes(metadata) {
   return [
-    ciShape(metadata['Beginning breakpoint 99% CI'], 'rgba(100,116,139,0.10)'),
-    ciShape(metadata['Beginning breakpoint 95% CI'], 'rgba(100,116,139,0.20)'),
-    ciShape(metadata['Ending breakpoint 99% CI'], 'rgba(100,116,139,0.10)'),
-    ciShape(metadata['Ending breakpoint 95% CI'], 'rgba(100,116,139,0.20)'),
-    breakpointShape(metadata['Beginning breakpoint site'], '#4338ca'),
-    breakpointShape(metadata['Ending breakpoint site'], '#b91c1c'),
+    ciShape(metadata['Beginning breakpoint 99% CI'], 'rgba(100,100,100,0.16)'),
+    ciShape(metadata['Beginning breakpoint 95% CI'], 'rgba(100,100,100,0.26)'),
+    ciShape(metadata['Ending breakpoint 99% CI'], 'rgba(100,100,100,0.16)'),
+    ciShape(metadata['Ending breakpoint 95% CI'], 'rgba(100,100,100,0.26)'),
+    breakpointShape(metadata['Beginning breakpoint site'], '#777777'),
+    breakpointShape(metadata['Ending breakpoint site'], '#777777'),
   ].filter(Boolean);
+}
+
+function code2BatchAnnotations(parsed) {
+  const positions = [0.17, 0.50, 0.83];
+  return parsed.batches.map((batch, i) => ({
+    xref: 'paper', yref: 'paper',
+    x: positions[i] ?? ((i + 1) / (parsed.batches.length + 1)),
+    y: -0.085,
+    text: `${batch.name}<br>(${batch.role})`,
+    showarrow: false,
+    xanchor: 'center', yanchor: 'top',
+    align: 'center',
+    font: { size: 10, color: batch.color },
+  }));
 }
 
 function renderPlot(parsed) {
   const { genes, metadata } = parsed;
   const traces = buildOrfTraces(genes);
   const shapes = buildCommonShapes(metadata);
+  const annotations = [
+    { xref: 'paper', yref: 'paper', x: 0, y: 1.035, text: '<b>ORF map · six reading frames</b>', showarrow: false, xanchor: 'left', font: { size: 13, color: '#334155' } },
+  ];
+
   const maxX = metadata['Maximum X-axis value'] || 1;
   let yRange = [0, 1.02];
   let hovermode = 'x unified';
+  let plotBackground = '#ffffff';
+  let y2Grid = '#edf2f7';
+  let bottomMargin = 58;
+  let legend = { orientation: 'h', x: 1, xanchor: 'right', y: 0.64, yanchor: 'bottom', font: { size: 10 } };
 
   if (parsed.kind === 'lines') {
     for (const s of parsed.series) {
@@ -188,30 +231,33 @@ function renderPlot(parsed) {
     const opacity = Math.max(0, Math.min(1, Number(parsed.transparency) || 0.25));
     for (const batch of parsed.batches) {
       for (const box of batch.boxes) shapes.push(boxShape(box, batch.color, opacity));
-      traces.push({
-        type: 'scatter', mode: 'lines',
-        x: [null], y: [null],
-        name: batch.role ? `${batch.role}<br>${batch.name}` : batch.name,
-        line: { color: batch.color, width: 3 },
-        hoverinfo: 'skip',
-        xaxis: 'x2', yaxis: 'y2',
-      });
     }
+
     const cutoff = cutoffShape(parsed.upperCutoff);
     if (cutoff) shapes.push(cutoff);
+    const baseline = recombinantBaselineShape(metadata);
+    if (baseline) shapes.push(baseline);
+
+    annotations.push(...code2BatchAnnotations(parsed));
+
     const maxHeight = Number.isFinite(parsed.maxHeight) ? parsed.maxHeight : 1;
-    yRange = [0, Math.max(1, maxHeight * 1.035)];
+    yRange = [0, Math.max(1, Math.ceil(maxHeight * 10) / 10 + 0.5)];
     hovermode = 'closest';
+    plotBackground = '#dcdcdc';
+    y2Grid = 'rgba(0,0,0,0)';
+    bottomMargin = 118;
+    legend = { visible: false };
   }
 
   const layout = {
     autosize: true,
-    height: 830,
-    margin: { l: 64, r: 22, t: 46, b: 58 },
-    paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff',
+    height: parsed.kind === 'boxes' ? 870 : 830,
+    margin: { l: 68, r: 22, t: 46, b: bottomMargin },
+    paper_bgcolor: '#ffffff',
+    plot_bgcolor: plotBackground,
     font: { family: 'Inter, ui-sans-serif, system-ui, sans-serif', color: '#0f172a', size: 12 },
     barmode: 'overlay', hovermode,
-    legend: { orientation: 'h', x: 1, xanchor: 'right', y: 0.64, yanchor: 'bottom', font: { size: 10 } },
+    legend,
     xaxis: { domain: [0, 1], anchor: 'y', range: [0, maxX], showticklabels: false, showgrid: false, zeroline: false },
     yaxis: {
       domain: [0.72, 1], anchor: 'x', range: [0, 6],
@@ -224,17 +270,24 @@ function renderPlot(parsed) {
     xaxis2: {
       domain: [0, 1], anchor: 'y2', range: [0, maxX], matches: 'x',
       title: { text: metadata['X-axis label'] || 'Position in alignment', standoff: 10 },
-      gridcolor: '#edf2f7', zeroline: false,
+      gridcolor: parsed.kind === 'boxes' ? 'rgba(0,0,0,0)' : '#edf2f7',
+      zeroline: false,
+      showline: true,
+      linecolor: '#222222',
+      linewidth: 1,
+      mirror: false,
     },
     yaxis2: {
       domain: [0, 0.62], anchor: 'x2', range: yRange,
       title: { text: metadata['Y-axis label'] || (parsed.kind === 'boxes' ? '-Log(KA p-val)' : 'Pairwise identity'), standoff: 10 },
-      gridcolor: '#edf2f7', zeroline: false,
+      gridcolor: y2Grid,
+      zeroline: false,
+      showline: true,
+      linecolor: '#222222',
+      linewidth: 1,
     },
     shapes,
-    annotations: [
-      { xref: 'paper', yref: 'paper', x: 0, y: 1.035, text: '<b>ORF map · six reading frames</b>', showarrow: false, xanchor: 'left', font: { size: 13, color: '#334155' } },
-    ],
+    annotations,
   };
 
   Plotly.react(els.plot, traces, layout, {
@@ -397,14 +450,22 @@ els.fileInput.addEventListener('change', async () => {
   await readAndRenderFile(file);
 });
 
-els.downloadPng.addEventListener('click', () => {
+function exportFilename() {
+  const eventNo = currentParsed?.metadata?.['Event number'] ?? 'plot';
+  const code = currentParsed?.metadata?.['CSV Code'] ?? 'RDP';
+  return `RDP_Code${code}_event_${eventNo}`;
+}
+
+els.exportFigure.addEventListener('click', () => {
   if (!currentParsed) return;
+  const format = els.exportFormat.value || 'png';
+  const vector = format === 'svg';
   Plotly.downloadImage(els.plot, {
-    format: 'png',
-    filename: `RDP_event_${currentParsed.metadata['Event number'] ?? 'plot'}`,
+    format,
+    filename: exportFilename(),
     width: 1600,
-    height: 1000,
-    scale: 2,
+    height: currentParsed.kind === 'boxes' ? 1100 : 1000,
+    scale: vector ? 1 : 2,
   });
 });
 
