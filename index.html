@@ -16,7 +16,7 @@
     <div class="shell header-inner">
       <div>
         <div class="eyebrow">RDP5 CSV visualization</div>
-        <h1>RDP Web Visualizer. Darren is dumb.</h1>
+        <h1>RDP Web Visualizer</h1>
         <p class="lede">Turn RDP CSV Code 1 and Code 2 exports into clean, interactive event plots directly in your browser.</p>
       </div>
       <div class="privacy-pill" title="Files are read by your browser and are not uploaded to this site.">
@@ -73,12 +73,21 @@
           <div class="eyebrow">Interactive event view</div>
           <h2 id="plot-title">RDP event plot</h2>
         </div>
-        <button id="download-png" class="btn secondary compact" type="button">Download PNG</button>
+        <div class="button-row">
+          <select id="export-format" class="btn secondary compact" aria-label="Figure export format">
+            <option value="png">PNG</option>
+            <option value="svg">SVG</option>
+            <option value="jpeg">JPEG</option>
+            <option value="webp">WebP</option>
+          </select>
+          <button id="export-figure" class="btn secondary compact" type="button">Export figure</button>
+        </div>
       </div>
       <div class="legend-note">
         <span><i class="swatch ci99"></i>99% breakpoint CI</span>
         <span><i class="swatch ci95"></i>95% breakpoint CI</span>
         <span><i class="line-swatch breakpoint"></i>reported breakpoint</span>
+        <span>Code 2: black dotted line = upper cutoff</span>
       </div>
       <div id="rdp-plot" class="plot" role="img" aria-label="RDP event visualization"></div>
     </section>
@@ -100,7 +109,7 @@
 
     <section class="card about-card">
       <h2>What this version supports</h2>
-      <p>This browser-only version is grounded on real RDP5 <strong>CSV Code 1</strong> and <strong>CSV Code 2</strong> examples. Code 1 renders pairwise-comparison curves; Code 2 renders GENECONV box coordinates using start, end, and height values, including the exported transparency and upper cutoff. Both formats include the ORF map, event metadata, breakpoint information, and corrected comparison colors.</p>
+      <p>This browser-only version is grounded on real RDP5 <strong>CSV Code 1</strong> and <strong>CSV Code 2</strong> examples. Code 1 renders pairwise-comparison curves; Code 2 reproduces the GENECONV-style transparent rectangle outlines using start, end, and height values, together with the upper cutoff and recombinant interval. Both formats include the ORF map, event metadata, breakpoint information, and RDP-matched comparison colors.</p>
       <p class="fine-print">Nothing is uploaded to a server by this application. Folder access requires an explicit browser permission grant and works best in current Chrome or Edge on HTTPS.</p>
     </section>
   </main>
