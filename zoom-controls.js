@@ -1,5 +1,13 @@
 /* Safer, deliberate zoom controls for the RDP Plotly figure. */
 (() => {
+  if (!document.querySelector('script[data-rdp-contact]')) {
+    const contactScript = document.createElement('script');
+    contactScript.src = 'contact.js';
+    contactScript.defer = true;
+    contactScript.dataset.rdpContact = 'true';
+    document.head.append(contactScript);
+  }
+
   const plotly = window.Plotly;
   if (!plotly) return;
 
@@ -54,7 +62,7 @@
   function clampRange(range, bounds) {
     if (!range || !bounds) return range;
     const fullSpan = bounds[1] - bounds[0];
-    let span = range[1] - range[0];
+    const span = range[1] - range[0];
     if (span >= fullSpan) return [...bounds];
     let [lo, hi] = range;
     if (lo < bounds[0]) {
