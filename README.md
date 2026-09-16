@@ -2,11 +2,12 @@
 
 A browser-only visualizer for RDP5 CSV exports. No Python, Conda, Docker, or local server is required.
 
-The first supported format is **RDP CSV Code 1**, based on a real event-plot export from RDP v5.93. The app recreates the event view as an interactive Plotly figure with:
+The app currently supports **RDP CSV Code 1 and Code 2**, based on real exports from RDP v5.93. It recreates the event view as an interactive Plotly figure with:
 
 - a six-track ORF map labeled `+1`, `+2`, `+3`, `-1`, `-2`, `-3`;
 - ORF direction arrowheads derived from the RDP orientation field;
-- three pairwise-comparison curves;
+- Code 1 pairwise-comparison curves;
+- Code 2 GENECONV box plots;
 - beginning and ending breakpoint calls;
 - 95% and 99% breakpoint confidence intervals;
 - event metadata and gene tables; and
@@ -14,12 +15,30 @@ The first supported format is **RDP CSV Code 1**, based on a real event-plot exp
 
 ## ORF frame mapping
 
-The Code 1 export provides a frame and an orientation for each ORF. The web view combines those into a signed reading-frame track:
+The exports provide a frame and an orientation for each ORF. The web view combines those into a signed reading-frame track:
 
 - orientation `1` (left → right) maps to `+1`, `+2`, or `+3`;
 - orientation `2` (right → left) maps to `-1`, `-2`, or `-3`.
 
 For example, frame `1` + orientation `1` is shown on `+1`, while frame `1` + orientation `2` is shown on `-1`. Directional arrowheads are also drawn at the end of each ORF.
+
+## RDP comparison colors
+
+The RDP export color order for the two recombinant comparisons is corrected in the browser view so the displayed comparisons match the RDP figure:
+
+- Major Parent - Minor Parent: yellow
+- Major Parent - Recombinant: green
+- Minor Parent - Recombinant: purple
+
+## Code 2 box plots
+
+CSV Code 2 is rendered as batches of rectangles. Each numeric row is interpreted as:
+
+1. start position in the alignment;
+2. end position in the alignment; and
+3. box height on the y-axis.
+
+The first coordinate batch is yellow, the second is green, and the third is purple. Boxes use the transparency supplied by the export; the supplied Code 2 example specifies `0.25`. The exported upper cutoff is drawn as a dotted horizontal line.
 
 ## Use the web app
 
@@ -46,16 +65,17 @@ Browsers without the File System Access API can still use **Choose one CSV**. Th
 
 CSV content is processed in the browser. The app does not upload the selected RDP files to a server.
 
-## Supported RDP format
+## Supported RDP formats
 
-The current parser is intentionally grounded on a supplied **CSV Code 1** example rather than guessing undocumented formats. It recognizes:
+The parser is intentionally grounded on supplied real examples rather than guessing undocumented formats. It recognizes:
 
 - `Gene start`, `Gene end`, frame, and orientation rows;
 - `CSV Code` and event metadata;
 - beginning/ending breakpoint sites;
 - 95% and 99% breakpoint confidence intervals;
-- plot colors and comparison roles; and
-- the numerical `Plot data` section.
+- plot colors and comparison roles;
+- Code 1 numerical line-plot data; and
+- Code 2 three-batch box coordinates, transparency, and upper cutoff.
 
 Additional RDP CSV codes should be added from real example exports.
 
@@ -77,7 +97,7 @@ A Pages deployment workflow is included under `.github/workflows/pages.yml`. If 
 
 - `index.html` — app shell and controls
 - `styles.css` — responsive visual design
-- `rdp-parser.js` — RDP CSV Code 1 parser
+- `rdp-parser.js` — RDP CSV Code 1 and Code 2 parser
 - `app.js` — directory access and Plotly renderer
 
 ## Scope
