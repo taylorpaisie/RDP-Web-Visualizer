@@ -6,8 +6,8 @@
 .comparison-toggle{display:grid;grid-template-columns:13px minmax(0,1fr);gap:8px;flex:1;min-width:0;padding:4px;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit}
 .comparison-toggle[aria-pressed="false"]{opacity:.5}
 .comparison-toggle[aria-pressed="false"] strong{text-decoration:line-through}
-.comparison-isolate{padding:6px 8px;border:1px solid #34455c;border-radius:6px;background:#111c2c;color:#c1cce0;cursor:pointer;font:inherit;font-size:.72rem}
-.comparison-isolate:hover{background:#172438}
+.comparison-isolate{padding:6px 8px;border:1px solid #34455c;border-radius:6px;background:#1b293d;color:#c1cce0;cursor:pointer;font:inherit;font-size:.72rem}
+.comparison-isolate:hover{background:#24344b}
 .comparison-help,.buddy-note{color:#91a0b5;font-size:.76rem;line-height:1.5}
 .comparison-help{margin:8px 18px}
 .about-motto{color:#d38c8c!important;font-size:.76rem;letter-spacing:.035em;margin:10px 0}
@@ -15,7 +15,7 @@
 .plot-toolbar{flex-wrap:wrap}
 .site-nav{display:flex;align-items:center;gap:4px}
 .site-nav a{display:inline-flex;align-items:center;min-height:44px;padding:9px 12px;border-radius:9px;color:#c1cce0;font-size:.82rem;font-weight:740;text-decoration:none}
-.site-nav a:hover{background:#172438;color:#fff}
+.site-nav a:hover{background:#24344b;color:#fff}
 .site-nav a[aria-current="page"]{background:#172b48;color:#bfdbfe}
 .about-page{max-width:1200px;padding-top:28px}
 .about-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:clamp(24px,4vw,56px);align-items:center;padding:clamp(20px,4vw,48px)}
@@ -65,7 +65,7 @@ input:focus-visible{
 }
 
 .app-bar{
-  background:linear-gradient(135deg,rgba(2,7,17,.96),rgba(8,18,34,.94) 63%,rgba(16,24,39,.94));
+  background:linear-gradient(135deg,rgba(12,20,33,.96),rgba(20,32,51,.94) 63%,rgba(28,41,59,.94));
   backdrop-filter:blur(18px);
 }
 
@@ -339,7 +339,7 @@ input:focus-visible{
   padding:10px 12px;
   border:1px solid #27364a;
   border-radius:10px;
-  background:#0e1826;
+  background:#182538;
   color:#aebdd0;
   font-size:.69rem;
   font-weight:760;

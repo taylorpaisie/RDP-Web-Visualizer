@@ -150,8 +150,8 @@
     const style = document.createElement('style');
     style.textContent = `
       .view-controls{display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px;padding-right:3px}
-      .view-control{min-width:34px;min-height:36px;padding:6px 9px;border:1px solid #34455c;border-radius:9px;background:#111c2c;color:#dce6f3;font:700 .78rem/1 Inter,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
-      .view-control:hover{background:#172438;border-color:#52657f;transform:translateY(-1px)}
+      .view-control{min-width:34px;min-height:36px;padding:6px 9px;border:1px solid #34455c;border-radius:9px;background:#1b293d;color:#dce6f3;font:700 .78rem/1 Inter,ui-sans-serif,system-ui,sans-serif;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+      .view-control:hover{background:#24344b;border-color:#52657f;transform:translateY(-1px)}
       .view-control.reset{min-width:auto;padding-inline:11px}
       .view-control:disabled{opacity:.45;cursor:not-allowed;transform:none}
       .zoom-help{display:block;margin:0 18px 9px;color:#7f8fa5;font-size:.67rem;line-height:1.4;text-align:right}
