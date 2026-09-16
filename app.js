@@ -20,6 +20,9 @@ const els = {
   metricBreakpoints: document.querySelector('#metric-breakpoints'),
   metricGenes: document.querySelector('#metric-genes'),
   metricSeries: document.querySelector('#metric-series'),
+  formatBadge: document.querySelector('#format-badge'),
+  methodBadge: document.querySelector('#method-badge'),
+  comparisonLegend: document.querySelector('#comparison-legend'),
   metadataBody: document.querySelector('#metadata-table tbody'),
   geneBody: document.querySelector('#gene-table tbody'),
 };
@@ -97,7 +100,7 @@ function breakpointShape(x, color) {
   return {
     type: 'line', xref: 'x2', yref: 'y2 domain',
     x0: x, x1: x, y0: 0, y1: 1,
-    line: { color, width: 1.8 },
+    line: { color, width: 1.45 },
   };
 }
 
@@ -106,7 +109,7 @@ function cutoffShape(y) {
   return {
     type: 'line', xref: 'x2 domain', yref: 'y2',
     x0: 0, x1: 1, y0: y, y1: y,
-    line: { color: '#111111', width: 1.25, dash: 'dot' },
+    line: { color: '#475569', width: 1.2, dash: 'dot' },
   };
 }
 
@@ -117,7 +120,7 @@ function recombinantBaselineShape(metadata) {
   return {
     type: 'line', xref: 'x2', yref: 'y2',
     x0: start, x1: end, y0: 0, y1: 0,
-    line: { color: '#ff3b30', width: 4 },
+    line: { color: '#ef4444', width: 3.2 },
     layer: 'above',
   };
 }
@@ -126,7 +129,7 @@ function boxShape(box, color, opacity) {
   return {
     type: 'rect', xref: 'x2', yref: 'y2',
     x0: box.start, x1: box.end, y0: 0, y1: box.height,
-    line: { color: hexToRgba(color, opacity), width: 1.15 },
+    line: { color: hexToRgba(color, opacity), width: 1.05 },
     fillcolor: 'rgba(0,0,0,0)',
     layer: 'above',
   };
@@ -138,10 +141,10 @@ function buildOrfTraces(genes) {
     x: genes.map((g) => g.length),
     base: genes.map((g) => g.start),
     y: genes.map(signedFrameY),
-    width: 0.56,
+    width: 0.42,
     marker: {
-      color: genes.map((g) => g.orientation === 1 ? '#111827' : '#64748b'),
-      line: { color: '#111827', width: 0.4 },
+      color: genes.map((g) => g.orientation === 1 ? '#0f172a' : '#64748b'),
+      line: { color: '#ffffff', width: 0.5 },
     },
     customdata: genes.map((g) => [
       g.start,
@@ -161,9 +164,9 @@ function buildOrfTraces(genes) {
     y: genes.map(signedFrameY),
     marker: {
       symbol: genes.map((g) => g.orientation === 2 ? 'triangle-left' : 'triangle-right'),
-      size: 10,
-      color: genes.map((g) => g.orientation === 1 ? '#111827' : '#64748b'),
-      line: { color: '#ffffff', width: 0.5 },
+      size: 8,
+      color: genes.map((g) => g.orientation === 1 ? '#0f172a' : '#64748b'),
+      line: { color: '#ffffff', width: 0.7 },
     },
     customdata: genes.map((g) => [signedFrameLabel(g), g.orientation === 1 ? 'Left → right' : 'Right → left']),
     hovertemplate: 'Frame %{customdata[0]}<br>%{customdata[1]}<extra></extra>',
@@ -176,27 +179,37 @@ function buildOrfTraces(genes) {
 
 function buildCommonShapes(metadata) {
   return [
-    ciShape(metadata['Beginning breakpoint 99% CI'], 'rgba(100,100,100,0.16)'),
-    ciShape(metadata['Beginning breakpoint 95% CI'], 'rgba(100,100,100,0.26)'),
-    ciShape(metadata['Ending breakpoint 99% CI'], 'rgba(100,100,100,0.16)'),
-    ciShape(metadata['Ending breakpoint 95% CI'], 'rgba(100,100,100,0.26)'),
-    breakpointShape(metadata['Beginning breakpoint site'], '#777777'),
-    breakpointShape(metadata['Ending breakpoint site'], '#777777'),
+    ciShape(metadata['Beginning breakpoint 99% CI'], 'rgba(100,116,139,0.10)'),
+    ciShape(metadata['Beginning breakpoint 95% CI'], 'rgba(100,116,139,0.19)'),
+    ciShape(metadata['Ending breakpoint 99% CI'], 'rgba(100,116,139,0.10)'),
+    ciShape(metadata['Ending breakpoint 95% CI'], 'rgba(100,116,139,0.19)'),
+    breakpointShape(metadata['Beginning breakpoint site'], '#64748b'),
+    breakpointShape(metadata['Ending breakpoint site'], '#64748b'),
   ].filter(Boolean);
 }
 
-function code2BatchAnnotations(parsed) {
-  const positions = [0.17, 0.50, 0.83];
-  return parsed.batches.map((batch, i) => ({
-    xref: 'paper', yref: 'paper',
-    x: positions[i] ?? ((i + 1) / (parsed.batches.length + 1)),
-    y: -0.085,
-    text: `${batch.name}<br>(${batch.role})`,
-    showarrow: false,
-    xanchor: 'center', yanchor: 'top',
-    align: 'center',
-    font: { size: 10, color: batch.color },
-  }));
+function renderComparisonLegend(parsed) {
+  els.comparisonLegend.replaceChildren();
+  const items = parsed.kind === 'boxes' ? parsed.batches : parsed.series;
+  for (const item of items) {
+    const card = document.createElement('div');
+    card.className = 'comparison-item';
+
+    const swatch = document.createElement('span');
+    swatch.className = 'comparison-swatch';
+    swatch.style.setProperty('--series-color', item.color || '#64748b');
+
+    const copy = document.createElement('div');
+    const role = document.createElement('strong');
+    role.textContent = item.role || item.colorName || 'Comparison';
+    const name = document.createElement('small');
+    name.textContent = item.name || '';
+    name.title = item.name || '';
+    copy.append(role, name);
+
+    card.append(swatch, copy);
+    els.comparisonLegend.append(card);
+  }
 }
 
 function renderPlot(parsed) {
@@ -204,16 +217,19 @@ function renderPlot(parsed) {
   const traces = buildOrfTraces(genes);
   const shapes = buildCommonShapes(metadata);
   const annotations = [
-    { xref: 'paper', yref: 'paper', x: 0, y: 1.035, text: '<b>ORF map · six reading frames</b>', showarrow: false, xanchor: 'left', font: { size: 13, color: '#334155' } },
+    {
+      xref: 'paper', yref: 'paper', x: 0, y: 1.022,
+      text: '<b>ORF map</b> · +1 +2 +3 / −1 −2 −3',
+      showarrow: false, xanchor: 'left',
+      font: { size: 11, color: '#64748b' },
+    },
   ];
 
   const maxX = metadata['Maximum X-axis value'] || 1;
   let yRange = [0, 1.02];
   let hovermode = 'x unified';
   let plotBackground = '#ffffff';
-  let y2Grid = '#edf2f7';
-  let bottomMargin = 58;
-  const legend = { orientation: 'h', x: 1, xanchor: 'right', y: 0.64, yanchor: 'bottom', font: { size: 10 } };
+  let y2Grid = '#e9eef5';
   let x2Ticks = null;
   let y2Ticks = null;
   let y2TickText = null;
@@ -222,11 +238,12 @@ function renderPlot(parsed) {
     for (const s of parsed.series) {
       traces.push({
         type: 'scatter', mode: 'lines', x: parsed.x, y: s.y,
-        name: s.role ? `${s.role}<br>${s.name}` : s.name,
-        line: { color: s.color, width: 2.5 },
+        name: s.role || s.name,
+        line: { color: s.color, width: 2.35 },
         opacity: 0.5,
         customdata: s.raw,
         hovertemplate: `${s.role || s.name}<br>Position %{x:,}<br>Pairwise identity %{y:.3f}<br>Raw value %{customdata}<extra></extra>`,
+        showlegend: false,
         xaxis: 'x2', yaxis: 'y2',
       });
     }
@@ -241,15 +258,12 @@ function renderPlot(parsed) {
     const baseline = recombinantBaselineShape(metadata);
     if (baseline) shapes.push(baseline);
 
-    annotations.push(...code2BatchAnnotations(parsed));
-
     const maxHeight = Number.isFinite(parsed.maxHeight) ? parsed.maxHeight : 1;
     const top = Math.max(1, Math.ceil((maxHeight + 0.45) * 10) / 10);
     yRange = [0, top];
     hovermode = 'closest';
-    plotBackground = '#dcdcdc';
-    y2Grid = 'rgba(0,0,0,0)';
-    bottomMargin = 118;
+    plotBackground = '#f8fafc';
+    y2Grid = '#e6ebf1';
     x2Ticks = [
       1,
       Math.floor(maxX * 0.25),
@@ -267,42 +281,63 @@ function renderPlot(parsed) {
 
   const layout = {
     autosize: true,
-    height: parsed.kind === 'boxes' ? 870 : 830,
-    margin: { l: 68, r: 22, t: 46, b: bottomMargin },
+    height: parsed.kind === 'boxes' ? 760 : 720,
+    margin: { l: 64, r: 18, t: 36, b: 58 },
     paper_bgcolor: '#ffffff',
     plot_bgcolor: plotBackground,
-    font: { family: 'Inter, ui-sans-serif, system-ui, sans-serif', color: '#0f172a', size: 12 },
-    barmode: 'overlay', hovermode,
-    showlegend: parsed.kind === 'lines',
-    legend,
-    xaxis: { domain: [0, 1], anchor: 'y', range: [0, maxX], showticklabels: false, showgrid: false, zeroline: false },
+    font: { family: 'Inter, ui-sans-serif, system-ui, sans-serif', color: '#334155', size: 11 },
+    barmode: 'overlay',
+    hovermode,
+    dragmode: 'zoom',
+    showlegend: false,
+    hoverlabel: { bgcolor: '#0f172a', bordercolor: '#0f172a', font: { color: '#ffffff', size: 11 } },
+    xaxis: {
+      domain: [0, 1], anchor: 'y', range: [0, maxX],
+      showticklabels: false, showgrid: false, zeroline: false,
+      fixedrange: false,
+    },
     yaxis: {
-      domain: [0.72, 1], anchor: 'x', range: [0, 6],
+      domain: [0.79, 1], anchor: 'x', range: [0, 6],
       tickmode: 'array',
       tickvals: [0.5, 1.5, 2.5, 3.5, 4.5, 5.5],
       ticktext: ['−3', '−2', '−1', '+3', '+2', '+1'],
-      title: { text: 'ORF frame', standoff: 8 },
-      gridcolor: '#eef2f7', gridwidth: 1, zeroline: false,
+      tickfont: { color: '#64748b', size: 10 },
+      title: { text: 'ORF frame', standoff: 7, font: { color: '#64748b', size: 10 } },
+      gridcolor: '#edf1f5', gridwidth: 1, zeroline: false,
+      showline: false,
     },
     xaxis2: {
       domain: [0, 1], anchor: 'y2', range: [0, maxX], matches: 'x',
-      title: { text: metadata['X-axis label'] || 'Position in alignment', standoff: 10 },
-      gridcolor: parsed.kind === 'boxes' ? 'rgba(0,0,0,0)' : '#edf2f7',
+      title: { text: metadata['X-axis label'] || 'Position in alignment', standoff: 10, font: { size: 11, color: '#475569' } },
+      gridcolor: parsed.kind === 'boxes' ? '#eef2f6' : '#edf1f5',
+      gridwidth: 1,
       zeroline: false,
       showline: true,
-      linecolor: '#222222',
+      linecolor: '#94a3b8',
       linewidth: 1,
-      mirror: false,
+      tickfont: { color: '#64748b', size: 10 },
+      ticks: 'outside',
+      ticklen: 4,
+      tickcolor: '#94a3b8',
       ...(x2Ticks ? { tickmode: 'array', tickvals: x2Ticks, ticktext: x2Ticks.map((v) => v.toLocaleString()) } : {}),
     },
     yaxis2: {
-      domain: [0, 0.62], anchor: 'x2', range: yRange,
-      title: { text: metadata['Y-axis label'] || (parsed.kind === 'boxes' ? '-Log(KA p-val)' : 'Pairwise identity'), standoff: 10 },
+      domain: [0, 0.70], anchor: 'x2', range: yRange,
+      title: {
+        text: metadata['Y-axis label'] || (parsed.kind === 'boxes' ? '-Log(KA p-val)' : 'Pairwise identity'),
+        standoff: 9,
+        font: { size: 11, color: '#475569' },
+      },
       gridcolor: y2Grid,
+      gridwidth: 1,
       zeroline: false,
       showline: true,
-      linecolor: '#222222',
+      linecolor: '#94a3b8',
       linewidth: 1,
+      tickfont: { color: '#64748b', size: 10 },
+      ticks: 'outside',
+      ticklen: 4,
+      tickcolor: '#94a3b8',
       ...(y2Ticks ? { tickmode: 'array', tickvals: y2Ticks, ticktext: y2TickText } : {}),
     },
     shapes,
@@ -313,7 +348,7 @@ function renderPlot(parsed) {
     responsive: true,
     displaylogo: false,
     scrollZoom: true,
-    modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+    modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'],
     toImageButtonOptions: { format: 'png', filename: `RDP_event_${metadata['Event number'] ?? 'plot'}`, scale: 2 },
   });
 }
@@ -354,6 +389,9 @@ function renderParsed(parsed) {
   els.metricSeries.textContent = parsed.kind === 'boxes'
     ? parsed.batches.length.toLocaleString()
     : parsed.series.length.toLocaleString();
+  els.formatBadge.textContent = `CSV Code ${m['CSV Code'] ?? parsed.code ?? '—'}`;
+  els.methodBadge.textContent = parsed.kind === 'boxes' ? 'GENECONV box plot' : 'Pairwise identity';
+  renderComparisonLegend(parsed);
   renderPlot(parsed);
   renderTables(parsed);
   showApp();
@@ -483,7 +521,7 @@ els.exportFigure.addEventListener('click', () => {
     format,
     filename: exportFilename(),
     width: 1600,
-    height: currentParsed.kind === 'boxes' ? 1100 : 1000,
+    height: currentParsed.kind === 'boxes' ? 1050 : 960,
     scale: vector ? 1 : 2,
   });
 });
