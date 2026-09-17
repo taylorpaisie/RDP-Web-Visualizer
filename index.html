@@ -62,7 +62,7 @@
           <a href="index.html" aria-current="page">Visualizer</a>
           <a href="about.html">About</a>
         </nav>
-        <span class="version-pill">RDP5 · CSV 1 + 2</span>
+        <span class="version-pill">RDP5 · CSV 1 + 2 + 3</span>
         <span class="privacy-pill" title="Selected files stay in your browser.">
           <span class="status-dot"></span> Local processing
         </span>
@@ -175,7 +175,7 @@
           <div class="metric"><span>Event</span><strong id="metric-event">—</strong></div>
           <div class="metric"><span>Breakpoints</span><strong id="metric-breakpoints">—</strong></div>
           <div class="metric"><span>ORFs</span><strong id="metric-genes">—</strong></div>
-          <div class="metric"><span>Comparisons</span><strong id="metric-series">—</strong></div>
+          <div class="metric"><span>Plot series</span><strong id="metric-series">—</strong></div>
         </div>
         <span class="infernal-note summary-infernal" aria-hidden="true">lux ex tenebris</span>
       </section>
@@ -198,7 +198,7 @@
         </div>
 
         <div id="comparison-legend" class="comparison-legend" aria-label="Comparison legend"></div>
-        <p class="comparison-help">Click a comparison to show or hide it. <strong>Only</strong> isolates one; <strong>Show all</strong> brings everyone back. Even your favorite curve can share the spotlight.</p>
+        <p class="comparison-help">Click a comparison or trace group to show or hide it. <strong>Only</strong> isolates one; <strong>Show all</strong> brings everyone back. Even your favorite curve can share the spotlight.</p>
 
         <div class="orf-frame-key" aria-label="ORF reading-frame colors">
           <span class="orf-key-label">ORF frames</span>
@@ -216,8 +216,9 @@
           <span><i class="key-box ci99"></i>99% CI</span>
           <span><i class="key-box ci95"></i>95% CI</span>
           <span><i class="key-line breakpoint"></i>Reported breakpoint</span>
-          <span><i class="key-line cutoff"></i>Code 2 upper cutoff</span>
-          <span><i class="key-line recombinant"></i>Code 2 recombinant interval</span>
+          <span><i class="key-line cutoff"></i>Significance cutoff</span>
+          <span><i class="key-line zero"></i>Code 3 zero baseline</span>
+          <span><i class="key-line recombinant"></i>Recombinant interval</span>
         </div>
 
         <div class="plot-frame">
@@ -246,7 +247,7 @@
 
       <section class="support-note">
         <strong>Faithful to RDP, easier to read.</strong>
-        The viewer preserves RDP coordinates, breakpoint calls, comparison colors, Code 1 curves, Code 2 box geometry and heights, cutoff values, recombinant intervals, ORF direction, and exported opacity while presenting them in a modern web layout.
+        The viewer preserves RDP coordinates, breakpoint calls, comparison colors, Code 1 curves, Code 2 box geometry and heights, Code 3 SiScan Z-scores, cutoff values, recombinant intervals, ORF direction, and exported opacity while presenting them in a modern web layout.
         <span class="infernal-whisper whisper-inline" aria-hidden="true">Solve et coagula.</span>
       </section>
 

@@ -1,4 +1,4 @@
-/* Browser-only parser for RDP5 CSV Code 1 and Code 2 plot exports. */
+/* Browser-only parser for RDP5 CSV Code 1, Code 2, and Code 3 plot exports. */
 
 (function () {
   const COLOR_MAP = {
@@ -24,7 +24,27 @@
   }
 
   function splitCsvLine(line) {
-    return line.split(',').map((x) => x.trim());
+    const fields = [];
+    let field = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i += 1) {
+      const character = line[i];
+      if (character === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          field += '"';
+          i += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (character === ',' && !inQuotes) {
+        fields.push(field.trim());
+        field = '';
+      } else {
+        field += character;
+      }
+    }
+    fields.push(field.trim());
+    return fields;
   }
 
   function normalizeDisplayLabel(value) {
@@ -221,12 +241,137 @@
     };
   }
 
+  function parseCode3(common) {
+    const { filename, lines, genes, metadata, plotIndex } = common;
+    if (plotIndex + 3 > lines.length) throw new Error('The Code 3 Plot data section is incomplete.');
+
+    let upperCutoff = null;
+    let lowerCutoff = null;
+    let transparency = 0.5;
+    let substitutionTypes = [];
+    let colorNames = [];
+    let header = null;
+    let dataStart = -1;
+
+    for (let i = plotIndex + 1; i < lines.length; i += 1) {
+      if (!lines[i].trim()) continue;
+      const parts = splitCsvLine(lines[i]);
+      const first = parts[0].replace(/:$/, '');
+      const values = parts.slice(1).filter(Boolean);
+
+      if (first === 'Upper cutoff dotted line') {
+        const value = Number(parts[1]);
+        if (Number.isFinite(value)) upperCutoff = value;
+      } else if (first === 'Lower cutoff dotted line') {
+        const value = Number(parts[1]);
+        if (Number.isFinite(value)) lowerCutoff = value;
+      } else if (/^Transpar/i.test(first)) {
+        const value = Number(parts[1]);
+        if (Number.isFinite(value)) transparency = value;
+      } else if (first === 'Substitution type') {
+        substitutionTypes = values;
+      } else if (first === 'Plot colours' || first === 'Plot colors') {
+        colorNames = values;
+      } else if (first === 'Position in alignment') {
+        header = parts;
+        dataStart = i + 1;
+        break;
+      }
+    }
+
+    if (!header || header.length < 2 || dataStart < 0) {
+      throw new Error('The Code 3 plot-data header is missing.');
+    }
+
+    const rows = [];
+    for (const line of lines.slice(dataStart)) {
+      if (!line.trim()) continue;
+      const parts = splitCsvLine(line);
+      if (parts.length !== header.length) continue;
+      const values = parts.map(Number);
+      if (!values.every(Number.isFinite)) continue;
+      rows.push(values);
+    }
+    if (!rows.length) throw new Error('No numeric Code 3 plot data were found.');
+
+    const code3DisplayColor = {
+      // RDP v5.93's Code 3 export names are rotated relative to the colors
+      // drawn in its SiScan event panel. This mapping reproduces that panel.
+      yellow: 'purple',
+      purple: 'green',
+      green: 'yellow',
+    };
+    const normalizedColorNames = colorNames.map((name) => {
+      const normalized = name.toLowerCase();
+      const canonical = normalized === 'gray' ? 'grey' : normalized;
+      return code3DisplayColor[canonical] || canonical;
+    });
+    const presentColors = [...new Set(normalizedColorNames.filter(Boolean))];
+    const preferredOrder = ['yellow', 'green', 'purple', 'grey'];
+    const orderedColors = [
+      ...preferredOrder.filter((name) => presentColors.includes(name)),
+      ...presentColors.filter((name) => !preferredOrder.includes(name)),
+    ];
+    const roleByColor = {
+      yellow: 'Major Parent – Minor Parent',
+      green: 'Major Parent – Recombinant',
+      purple: 'Minor Parent – Recombinant',
+      grey: 'Auxiliary substitution traces',
+    };
+    const groups = orderedColors.map((colorName, index) => ({
+      index,
+      name: `${colorName[0].toUpperCase()}${colorName.slice(1)} SiScan traces`,
+      role: roleByColor[colorName] || `${colorName} traces`,
+      colorName,
+      color: COLOR_MAP[colorName] || FALLBACK_COLORS[index % FALLBACK_COLORS.length],
+    }));
+    const groupIndexByColor = new Map(groups.map((group) => [group.colorName, group.index]));
+
+    const x = rows.map((row) => row[0]);
+    const series = header.slice(1).map((name, index) => {
+      const colorName = normalizedColorNames[index] || '';
+      return {
+        name,
+        role: substitutionTypes[index] || name,
+        colorName,
+        color: COLOR_MAP[colorName] || FALLBACK_COLORS[index % FALLBACK_COLORS.length],
+        groupIndex: groupIndexByColor.get(colorName) ?? 0,
+        y: rows.map((row) => row[index + 1]),
+      };
+    });
+    const allValues = series.flatMap((item) => item.y);
+
+    metadata['Upper cutoff dotted line'] = upperCutoff;
+    metadata['Lower cutoff dotted line'] = lowerCutoff;
+    metadata['Transparency'] = transparency;
+    metadata['Substitution series'] = series.length;
+    metadata['Maximum X-axis value'] ??= Math.max(...x);
+
+    return {
+      filename,
+      code: 3,
+      kind: 'siscan',
+      genes,
+      metadata,
+      x,
+      series,
+      groups,
+      upperCutoff,
+      lowerCutoff,
+      transparency,
+      minY: Math.min(...allValues, upperCutoff ?? 0, lowerCutoff ?? 0, 0),
+      maxY: Math.max(...allValues, upperCutoff ?? 0, lowerCutoff ?? 0, 0),
+      rowCount: rows.length,
+    };
+  }
+
   function parseRdpCsv(text, filename = 'RDP export.csv') {
     const common = parseCommon(text, filename);
     const code = String(common.metadata['CSV Code'] ?? '');
     if (code === '1') return parseCode1(common);
     if (code === '2') return parseCode2(common);
-    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 and 2.`);
+    if (code === '3') return parseCode3(common);
+    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1, 2, and 3.`);
   }
 
   function parseRdpCode1Csv(text, filename = 'RDP export.csv') {

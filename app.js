@@ -38,7 +38,9 @@ let scanInProgress = false;
 let comparisonVisible = [];
 
 function comparisonItems(parsed) {
-  return parsed.kind === 'boxes' ? parsed.batches : parsed.series;
+  if (parsed.kind === 'boxes') return parsed.batches;
+  if (parsed.kind === 'siscan') return parsed.groups;
+  return parsed.series;
 }
 
 function updateComparisonVisibility() {
@@ -167,6 +169,28 @@ function recombinantBaselineShape(metadata) {
   };
 }
 
+function zeroBaselineShape() {
+  return {
+    type: 'line', xref: 'x2 domain', yref: 'y2',
+    x0: 0, x1: 1, y0: 0, y1: 0,
+    line: { color: '#111827', width: 1.8 },
+    layer: 'above',
+  };
+}
+
+function recombinantIntervalShape(metadata) {
+  const start = metadata['Beginning breakpoint site'];
+  const end = metadata['Ending breakpoint site'];
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  return {
+    type: 'rect', xref: 'x2', yref: 'y2 domain',
+    x0: start, x1: end, y0: 0, y1: 1,
+    fillcolor: 'rgba(239,68,68,0.035)',
+    line: { color: 'rgba(239,68,68,0.55)', width: 1.1 },
+    layer: 'below',
+  };
+}
+
 function boxShape(box, color, opacity) {
   return {
     type: 'rect', xref: 'x2', yref: 'y2',
@@ -232,7 +256,7 @@ function buildCommonShapes(metadata) {
 
 function renderComparisonLegend(parsed) {
   els.comparisonLegend.replaceChildren();
-  const items = parsed.kind === 'boxes' ? parsed.batches : parsed.series;
+  const items = comparisonItems(parsed);
   for (const [index, item] of items.entries()) {
     const card = document.createElement('div');
     card.className = 'comparison-item';
@@ -352,11 +376,45 @@ function renderPlot(parsed) {
       if (i === 1) return (Math.floor(value * 100) / 100).toFixed(2);
       return (Math.floor(value * 10) / 10).toFixed(1);
     });
+  } else if (parsed.kind === 'siscan') {
+    const opacity = Math.max(0.08, Math.min(1, Number(parsed.transparency) || 0.5));
+    const orderedSeries = [...parsed.series].sort((a, b) => {
+      const aGrey = a.colorName === 'grey' ? 0 : 1;
+      const bGrey = b.colorName === 'grey' ? 0 : 1;
+      return aGrey - bGrey;
+    });
+    for (const series of orderedSeries) {
+      traces.push({
+        meta: { comparisonIndex: series.groupIndex },
+        type: 'scatter', mode: 'lines', x: parsed.x, y: series.y,
+        name: series.name,
+        line: { color: series.color, width: series.colorName === 'grey' ? 1.05 : 1.45 },
+        opacity: series.colorName === 'grey' ? Math.min(opacity, 0.32) : opacity,
+        hovertemplate: `${series.name}<br>Position %{x:,}<br>Z-score %{y:.3f}<extra></extra>`,
+        showlegend: false,
+        xaxis: 'x2', yaxis: 'y2',
+      });
+    }
+
+    const interval = recombinantIntervalShape(metadata);
+    if (interval) shapes.push(interval);
+    const upperCutoff = cutoffShape(parsed.upperCutoff);
+    const lowerCutoff = cutoffShape(parsed.lowerCutoff);
+    if (upperCutoff) shapes.push(upperCutoff);
+    if (lowerCutoff) shapes.push(lowerCutoff);
+    shapes.push(zeroBaselineShape());
+
+    const span = Math.max(1, parsed.maxY - parsed.minY);
+    const padding = span * 0.035;
+    yRange = [parsed.minY - padding, parsed.maxY + padding];
+    hovermode = 'closest';
+    plotBackground = '#f3f4f6';
+    y2Grid = '#d9dee5';
   }
 
   const layout = {
     autosize: true,
-    height: parsed.kind === 'boxes' ? 760 : 720,
+    height: ['boxes', 'siscan'].includes(parsed.kind) ? 760 : 720,
     margin: { l: 64, r: 18, t: 36, b: 58 },
     paper_bgcolor: '#ffffff',
     plot_bgcolor: plotBackground,
@@ -384,7 +442,7 @@ function renderPlot(parsed) {
     xaxis2: {
       domain: [0, 1], anchor: 'y2', range: [0, maxX], matches: 'x',
       title: { text: metadata['X-axis label'] || 'Position in alignment', standoff: 10, font: { size: 11, color: '#475569' } },
-      gridcolor: parsed.kind === 'boxes' ? '#eef2f6' : '#edf1f5',
+      gridcolor: ['boxes', 'siscan'].includes(parsed.kind) ? '#e3e7ec' : '#edf1f5',
       gridwidth: 1,
       zeroline: false,
       showline: true,
@@ -399,7 +457,7 @@ function renderPlot(parsed) {
     yaxis2: {
       domain: [0, 0.70], anchor: 'x2', range: yRange,
       title: {
-        text: metadata['Y-axis label'] || (parsed.kind === 'boxes' ? '-Log(KA p-val)' : 'Pairwise identity'),
+        text: metadata['Y-axis label'] || (parsed.kind === 'boxes' ? '-Log(KA p-val)' : parsed.kind === 'siscan' ? 'Z-Score' : 'Pairwise identity'),
         standoff: 9,
         font: { size: 11, color: '#475569' },
       },
@@ -462,11 +520,11 @@ function renderParsed(parsed) {
   els.metricBreakpoints.textContent = Number.isFinite(m['Beginning breakpoint site']) && Number.isFinite(m['Ending breakpoint site'])
     ? `${m['Beginning breakpoint site'].toLocaleString()}–${m['Ending breakpoint site'].toLocaleString()}` : '—';
   els.metricGenes.textContent = parsed.genes.length.toLocaleString();
-  els.metricSeries.textContent = parsed.kind === 'boxes'
-    ? parsed.batches.length.toLocaleString()
-    : parsed.series.length.toLocaleString();
+  els.metricSeries.textContent = (parsed.kind === 'boxes' ? parsed.batches.length : parsed.series.length).toLocaleString();
   els.formatBadge.textContent = `CSV Code ${m['CSV Code'] ?? parsed.code ?? '—'}`;
-  els.methodBadge.textContent = parsed.kind === 'boxes' ? 'GENECONV box plot' : 'Pairwise identity';
+  els.methodBadge.textContent = parsed.kind === 'boxes'
+    ? 'GENECONV box plot'
+    : parsed.kind === 'siscan' ? 'SiScan Z-score plot' : 'Pairwise identity';
   renderComparisonLegend(parsed);
   renderPlot(parsed);
   renderTables(parsed);
@@ -610,10 +668,10 @@ els.exportFigure.addEventListener('click', async () => {
     data.forEach((trace) => {
       const index = trace.meta?.comparisonIndex;
       if (!Number.isInteger(index)) return;
-      trace.showlegend = comparisonVisible[index];
+      trace.showlegend = parsed.kind === 'siscan' ? false : comparisonVisible[index];
       trace.name = figureText(items[index].role || items[index].name || 'Comparison');
     });
-    if (parsed.kind === 'boxes') items.forEach((item, index) => {
+    if (['boxes', 'siscan'].includes(parsed.kind)) items.forEach((item, index) => {
       if (comparisonVisible[index]) data.push({
         type: 'scatter', x: [null], y: [null], xaxis: 'x2', yaxis: 'y2',
         mode: 'lines', line: { color: item.color, width: 3 },
@@ -626,7 +684,7 @@ els.exportFigure.addEventListener('click', async () => {
     layout.title = { text: figureText(parsed.metadata['Event title'] || parsed.filename), x: 0.04, font: { size: 20 } };
     layout.annotations = [...(layout.annotations || []), {
       xref: 'paper', yref: 'paper', x: 0, y: -0.23, xanchor: 'left', showarrow: false,
-      text: `CSV Code ${figureText(parsed.code ?? parsed.metadata['CSV Code'] ?? '')} · Event ${figureText(parsed.metadata['Event number'] ?? '—')} · ${comparisonVisible.filter(Boolean).length}/${items.length} comparisons shown<br>Gray bands: 95% (darker) / 99% (lighter) CI · Vertical lines: reported breakpoints${parsed.kind === 'boxes' ? '<br>Dotted line: upper cutoff · Red baseline: recombinant interval' : ''}`,
+      text: `CSV Code ${figureText(parsed.code ?? parsed.metadata['CSV Code'] ?? '')} · Event ${figureText(parsed.metadata['Event number'] ?? '—')} · ${comparisonVisible.filter(Boolean).length}/${items.length} trace groups shown<br>Gray bands: 95% (darker) / 99% (lighter) CI · Vertical lines: reported breakpoints${parsed.kind === 'boxes' ? '<br>Dotted line: upper cutoff · Red baseline: recombinant interval' : parsed.kind === 'siscan' ? '<br>Dotted lines: upper/lower cutoffs · Black line: zero · Red outline: recombinant interval' : ''}`,
       font: { size: 12, color: '#475569' }, align: 'left',
     }];
     await Plotly.newPlot(exportPlot, data, layout, { staticPlot: true });
@@ -634,7 +692,7 @@ els.exportFigure.addEventListener('click', async () => {
     format,
     filename,
     width: 1600,
-    height: parsed.kind === 'boxes' ? 1200 : 1110,
+    height: ['boxes', 'siscan'].includes(parsed.kind) ? 1200 : 1110,
     scale: vector ? 1 : 2,
     });
   } catch (error) {

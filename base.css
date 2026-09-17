@@ -203,6 +203,7 @@ select:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.10)}
 .key-box.ci95{background:rgba(100,116,139,.23);border:1px solid rgba(100,116,139,.33)}
 .key-line{display:inline-block;width:17px;border-top:2px solid #64748b}
 .key-line.cutoff{border-top:2px dotted #475569}
+.key-line.zero{border-top-color:#111827}
 .plot-frame{margin:0 14px 14px;border:1px solid #dfe6ee;border-radius:12px;background:#fff;overflow:hidden;box-shadow:inset 0 0 0 1px #fff}
 .plot{width:100%;min-height:690px;background:#fff}
 

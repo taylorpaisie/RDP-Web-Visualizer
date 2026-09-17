@@ -2,12 +2,13 @@
 
 A browser-only visualizer for RDP5 CSV exports. No Python, Conda, Docker, or local server is required.
 
-The app currently supports **RDP CSV Code 1 and Code 2**, based on real exports from RDP v5.93. It recreates the event view as an interactive Plotly figure with:
+The app currently supports **RDP CSV Codes 1, 2, and 3**, based on real exports from RDP v5.93. It recreates the event view as an interactive Plotly figure with:
 
 - a six-track ORF map labeled `+1`, `+2`, `+3`, `-1`, `-2`, `-3`;
 - ORF direction arrowheads derived from the RDP orientation field;
 - Code 1 pairwise-comparison curves;
 - Code 2 GENECONV box plots;
+- Code 3 SiScan substitution-series Z-score plots;
 - beginning and ending breakpoint calls;
 - 95% and 99% breakpoint confidence intervals;
 - event metadata and gene tables; and
@@ -46,6 +47,10 @@ CSV Code 2 is rendered as batches of rectangles. Each numeric row is interpreted
 3. box height on the y-axis.
 
 The first coordinate batch is yellow, the second is green, and the third is purple. Boxes use the transparency supplied by the export; the supplied Code 2 example specifies `0.25`. The exported upper cutoff is drawn as a dotted horizontal line.
+
+## Code 3 SiScan plots
+
+CSV Code 3 is rendered from the raw substitution-series Z-scores in the export. RDP v5.93's exported Code 3 color names are translated to the colors drawn in its SiScan panel; the viewer groups visibility controls by the resulting yellow, green, purple, and gray trace families and preserves the exported opacity. The exported upper and lower cutoffs are drawn as dotted lines. A black zero baseline and a subtle red recombinant-interval outline reproduce the important visual cues from RDP's SiScan panel.
 
 ## Use the web app
 
@@ -87,8 +92,9 @@ The parser is intentionally grounded on supplied real examples rather than guess
 - beginning/ending breakpoint sites;
 - 95% and 99% breakpoint confidence intervals;
 - plot colors and comparison roles;
-- Code 1 numerical line-plot data; and
-- Code 2 three-batch box coordinates, transparency, and upper cutoff.
+- Code 1 numerical line-plot data;
+- Code 2 three-batch box coordinates, transparency, and upper cutoff; and
+- Code 3 SiScan substitution types, plot colors, raw Z-scores, transparency, and upper/lower cutoffs.
 
 Additional RDP CSV codes should be added from real example exports.
 
@@ -116,7 +122,7 @@ A Pages deployment workflow is included under `.github/workflows/pages.yml`. If 
 - `dark-shell.css` — dark theme (imported by `styles.css`)
 - `contact.js` — shared contact footer used on both pages
 - `zoom-controls.js` — event zoom, full-alignment reset, and keyboard navigation
-- `rdp-parser.js` — RDP CSV Code 1 and Code 2 parser
+- `rdp-parser.js` — RDP CSV Code 1, Code 2, and Code 3 parser
 - `app.js` — directory access and Plotly renderer
 
 ## Scope
