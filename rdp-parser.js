@@ -562,18 +562,33 @@
           y,
         };
       });
+      const primarySeries = series.find((item) => !/permutation\s+(upper|lower)\s+bound/i.test(item.name));
+      const upperBound = series.find((item) => /permutation\s+upper\s+bound/i.test(item.name));
+      const lowerBound = series.find((item) => /permutation\s+lower\s+bound/i.test(item.name));
+      const finalIndex = x.length - 1;
+      // Code 5 uses the same 0,0 polygon-closing sentinel as Code 4. Close
+      // it on the primary statistic so the browser does not draw a spike to
+      // zero at the right edge of a sequence envelope.
+      if (upperBound && lowerBound && primarySeries && !primarySeries.placeholder
+        && upperBound.y[finalIndex] === 0 && lowerBound.y[finalIndex] === 0) {
+        upperBound.y[finalIndex] = primarySeries.y[finalIndex];
+        lowerBound.y[finalIndex] = primarySeries.y[finalIndex];
+      }
       const substantiveSeries = series.filter((item) => !item.placeholder);
-      const exportedBandOpacities = floodFillTransparency
+      const exportedBandOpacities = [upperBound?.floodFillOpacity, lowerBound?.floodFillOpacity]
         .filter((value) => Number.isFinite(value) && value > 0);
       groups.push({
         index: groupIndex,
-        name: header[1] || `Sequence ${groupIndex + 1}`,
-        role: `${header[1] || `Sequence ${groupIndex + 1}`} 3SEQ envelope`,
+        name: primarySeries?.name || `Sequence ${groupIndex + 1}`,
+        role: `${primarySeries?.name || `Sequence ${groupIndex + 1}`} 3SEQ envelope`,
         colorName: exportedColorName,
         color,
         x,
         series,
         substantiveSeries,
+        primarySeries: primarySeries?.placeholder ? null : primarySeries,
+        upperBound,
+        lowerBound,
         bandOpacity: exportedBandOpacities.length ? Math.max(...exportedBandOpacities) : 0.25,
         rowCount: rows.length,
       });

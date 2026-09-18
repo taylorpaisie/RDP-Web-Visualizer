@@ -459,7 +459,7 @@ function renderPlot(parsed) {
           meta: { comparisonIndex: group.index },
           type: 'scatter', mode: 'lines', x: group.x, y: series.y,
           name: `${group.name} · ${series.name}`,
-          line: { color: hexToRgba(group.color, opacity), width: series === group.substantiveSeries[0] ? 1.65 : 1.25 },
+          line: { color: hexToRgba(group.color, opacity), width: series === group.primarySeries ? 1.65 : 1.25 },
           ...(fill ? { fill, fillcolor: hexToRgba(group.color, group.bandOpacity) } : {}),
           hovertemplate: `${group.name} · ${series.name}<br>Position %{x:,}<br>Height %{y:,.3f}<extra></extra>`,
           showlegend: false,
@@ -467,17 +467,23 @@ function renderPlot(parsed) {
         });
       };
 
-      addSeries(group.substantiveSeries[0]);
-      addSeries(group.substantiveSeries[1], { fill: group.substantiveSeries[0] ? 'tonexty' : null });
-      for (const series of group.substantiveSeries.slice(2)) addSeries(series);
+      // Plotly's tonexty fill targets the immediately preceding trace. Keep
+      // the two permutation bounds adjacent, then draw the primary statistic
+      // over the envelope. Column order cannot be used here because Code 5
+      // exports put the primary statistic before the bounds in some blocks.
+      addSeries(group.lowerBound);
+      addSeries(group.upperBound, { fill: group.lowerBound ? 'tonexty' : null });
+      addSeries(group.primarySeries);
+      for (const series of group.substantiveSeries) addSeries(series);
     }
 
     const interval = recombinantIntervalShape(metadata);
     if (interval) shapes.push(interval);
-    const span = Math.max(1, parsed.maxY - parsed.minY);
+    const span = parsed.maxY - parsed.minY;
+    const padding = span > 0 ? span * 0.035 : Math.max(1, Math.abs(parsed.maxY) * 0.05);
     yRange = [
-      Math.round(parsed.minY - span * 0.004),
-      Math.round(parsed.maxY + span * 0.002),
+      parsed.minY - padding,
+      parsed.maxY + padding,
     ];
     hovermode = 'closest';
     plotBackground = '#f3f4f6';
