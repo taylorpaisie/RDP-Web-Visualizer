@@ -1,4 +1,4 @@
-/* Browser-only parser for RDP5 CSV Code 1 through Code 4 plot exports. */
+/* Browser-only parser for RDP5 CSV Code 1 through Code 5 plot exports. */
 
 (function () {
   const COLOR_MAP = {
@@ -15,6 +15,11 @@
     gray: '#64748b',
   };
   const FALLBACK_COLORS = ['#d4c91f', '#159a9a', '#a22aa8', '#299bb5'];
+  const CODE5_COLORS = {
+    green: '#58b967',
+    blue: '#6677d8',
+    red: '#d56872',
+  };
 
   function parsePair(values) {
     if (!values || values.length < 2) return null;
@@ -478,6 +483,120 @@
     };
   }
 
+  function repairCode5Header(parts) {
+    if (parts.length !== 3) return parts;
+    const match = parts[1].match(/^(.+?)(Permutation\s+upper\s+bound)$/i);
+    return match ? [parts[0], match[1], match[2], parts[2]] : parts;
+  }
+
+  function parseCode5(common) {
+    const { filename, lines, genes, metadata, plotIndex } = common;
+    const groups = [];
+    let index = plotIndex + 1;
+
+    while (index < lines.length) {
+      while (index < lines.length && !/^Transparency:/i.test(lines[index].trim())) index += 1;
+      if (index >= lines.length) break;
+
+      let transparency = [];
+      let floodFillTransparency = [];
+      let colorNames = [];
+      let floodFillPlots = [];
+      let header = null;
+      let dataStart = -1;
+
+      for (; index < lines.length; index += 1) {
+        if (!lines[index].trim()) continue;
+        const parts = splitCsvLine(lines[index]);
+        const first = parts[0].replace(/:$/, '');
+        const numericSettings = parts.slice(1).map((value) => {
+          const number = Number(value);
+          return value !== '' && Number.isFinite(number) ? number : null;
+        });
+
+        if (first === 'Transparency') {
+          transparency = numericSettings;
+        } else if (first === 'Flood fill transparency') {
+          floodFillTransparency = numericSettings;
+        } else if (first === 'Colours' || first === 'Colors' || first === 'Plot colours' || first === 'Plot colors') {
+          colorNames = parts.slice(1);
+        } else if (first === 'Flood fill plots') {
+          floodFillPlots = numericSettings.filter(Number.isFinite);
+        } else if (first === 'Position in alignment') {
+          header = repairCode5Header(parts);
+          dataStart = index + 1;
+          break;
+        }
+      }
+
+      if (!header || header.length < 3 || dataStart < 0) break;
+      const rows = [];
+      index = dataStart;
+      for (; index < lines.length; index += 1) {
+        if (!lines[index].trim()) break;
+        const parts = splitCsvLine(lines[index]);
+        if (parts.length !== header.length) continue;
+        const values = parts.map(Number);
+        if (values.every(Number.isFinite)) rows.push(values);
+      }
+      if (!rows.length) continue;
+
+      const groupIndex = groups.length;
+      const x = rows.map((row) => row[0]);
+      const exportedColorName = (colorNames.find(Boolean) || '').toLowerCase();
+      const color = CODE5_COLORS[exportedColorName]
+        || COLOR_MAP[exportedColorName]
+        || FALLBACK_COLORS[groupIndex % FALLBACK_COLORS.length];
+      const series = header.slice(1).map((name, seriesIndex) => {
+        const y = rows.map((row) => row[seriesIndex + 1]);
+        return {
+          name,
+          role: name,
+          colorName: exportedColorName,
+          color,
+          opacity: Number.isFinite(transparency[seriesIndex]) ? transparency[seriesIndex] : 1,
+          floodFillOpacity: Number.isFinite(floodFillTransparency[seriesIndex]) ? floodFillTransparency[seriesIndex] : 0,
+          floodFill: floodFillPlots.includes(seriesIndex + 1),
+          placeholder: y.every((value) => value === 0),
+          groupIndex,
+          y,
+        };
+      });
+      const substantiveSeries = series.filter((item) => !item.placeholder);
+      const exportedBandOpacities = floodFillTransparency
+        .filter((value) => Number.isFinite(value) && value > 0);
+      groups.push({
+        index: groupIndex,
+        name: header[1] || `Sequence ${groupIndex + 1}`,
+        role: `${header[1] || `Sequence ${groupIndex + 1}`} 3SEQ envelope`,
+        colorName: exportedColorName,
+        color,
+        x,
+        series,
+        substantiveSeries,
+        bandOpacity: exportedBandOpacities.length ? Math.max(...exportedBandOpacities) : 0.25,
+        rowCount: rows.length,
+      });
+    }
+
+    if (!groups.length) throw new Error('No Code 5 3SEQ plot blocks were found.');
+    const plottedValues = groups.flatMap((group) => group.substantiveSeries.flatMap((item) => item.y));
+    metadata['3SEQ sequence groups'] = groups.map((group) => group.name).join(', ');
+    metadata['Maximum X-axis value'] ??= Math.max(...groups.flatMap((group) => group.x));
+
+    return {
+      filename,
+      code: 5,
+      kind: 'three-seq-overview',
+      genes,
+      metadata,
+      groups,
+      minY: Math.min(...plottedValues),
+      maxY: Math.max(...plottedValues),
+      rowCount: groups.reduce((total, group) => total + group.rowCount, 0),
+    };
+  }
+
   function parseRdpCsv(text, filename = 'RDP export.csv') {
     const common = parseCommon(text, filename);
     const code = String(common.metadata['CSV Code'] ?? '');
@@ -485,7 +604,8 @@
     if (code === '2') return parseCode2(common);
     if (code === '3') return parseCode3(common);
     if (code === '4') return parseCode4(common);
-    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1, 2, 3, and 4.`);
+    if (code === '5') return parseCode5(common);
+    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1, 2, 3, 4, and 5.`);
   }
 
   function parseRdpCode1Csv(text, filename = 'RDP export.csv') {

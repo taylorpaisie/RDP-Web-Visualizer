@@ -2,7 +2,7 @@
 
 A browser-only visualizer for RDP5 CSV exports. No Python, Conda, Docker, or local server is required.
 
-The app currently supports **RDP CSV Codes 1, 2, 3, and 4**, based on real exports from RDP v5.93. It recreates the event view as an interactive Plotly figure with:
+The app currently supports **RDP CSV Codes 1 through 5**, based on real exports from RDP v5.93. It recreates the event view as an interactive Plotly figure with:
 
 - a six-track ORF map labeled `+1`, `+2`, `+3`, `-1`, `-2`, `-3`;
 - ORF direction arrowheads derived from the RDP orientation field;
@@ -10,6 +10,7 @@ The app currently supports **RDP CSV Codes 1, 2, 3, and 4**, based on real expor
 - Code 2 GENECONV box plots;
 - Code 3 SiScan substitution-series Z-score plots;
 - Code 4 3SEQ cumulative-height plots with permutation-bound envelopes;
+- Code 5 multi-sequence 3SEQ plots with colored envelopes;
 - beginning and ending breakpoint calls;
 - 95% and 99% breakpoint confidence intervals;
 - event metadata and gene tables; and
@@ -57,6 +58,10 @@ CSV Code 3 is rendered from the raw substitution-series Z-scores in the export. 
 
 CSV Code 4 is rendered from the exported 3SEQ cumulative-height series. The primary statistic is drawn as a black line, while the permutation upper and lower bounds form a gray envelope using the export's line and flood-fill transparency settings. Breakpoint calls, confidence intervals, and the recombinant-interval outline remain aligned with the ORF map.
 
+## Code 5 multi-sequence 3SEQ plots
+
+CSV Code 5 contains consecutive plot blocks for the event's L, K, and O sequences. The viewer renders these as green, blue, and red line/envelope groups, preserves each block's exported line and flood-fill opacity, and provides one visibility control per sequence. It also repairs the missing comma in the `KPermutation upper bound` and `OPermutation upper bound` headers emitted by the supplied RDP v5.93 export and ignores their all-zero placeholder series.
+
 ## Use the web app
 
 Open:
@@ -99,8 +104,9 @@ The parser is intentionally grounded on supplied real examples rather than guess
 - plot colors and comparison roles;
 - Code 1 numerical line-plot data;
 - Code 2 three-batch box coordinates, transparency, and upper cutoff;
-- Code 3 SiScan substitution types, plot colors, raw Z-scores, transparency, and upper/lower cutoffs; and
-- Code 4 3SEQ heights, permutation bounds, plot colors, and line/flood-fill transparency.
+- Code 3 SiScan substitution types, plot colors, raw Z-scores, transparency, and upper/lower cutoffs;
+- Code 4 3SEQ heights, permutation bounds, plot colors, and line/flood-fill transparency; and
+- Code 5 multi-block 3SEQ sequence series, colors, and line/flood-fill transparency.
 
 Additional RDP CSV codes should be added from real example exports.
 
@@ -128,7 +134,7 @@ A Pages deployment workflow is included under `.github/workflows/pages.yml`. If 
 - `dark-shell.css` — dark theme (imported by `styles.css`)
 - `contact.js` — shared contact footer used on both pages
 - `zoom-controls.js` — event zoom, full-alignment reset, and keyboard navigation
-- `rdp-parser.js` — RDP CSV Code 1 through Code 4 parser
+- `rdp-parser.js` — RDP CSV Code 1 through Code 5 parser
 - `app.js` — directory access and Plotly renderer
 
 ## Scope
