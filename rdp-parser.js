@@ -16,9 +16,11 @@
   };
   const FALLBACK_COLORS = ['#d4c91f', '#159a9a', '#a22aa8', '#299bb5'];
   const CODE5_COLORS = {
-    green: '#58b967',
-    blue: '#6677d8',
-    red: '#d56872',
+    // A higher-contrast teal / indigo / coral trio keeps overlapping
+    // envelopes distinct without the harshness of browser-primary colors.
+    green: '#159D82',
+    blue: '#5865D8',
+    red: '#D95D70',
   };
 
   function parsePair(values) {
