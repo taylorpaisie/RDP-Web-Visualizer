@@ -2,13 +2,14 @@
 
 A browser-only visualizer for RDP5 CSV exports. No Python, Conda, Docker, or local server is required.
 
-The app currently supports **RDP CSV Codes 1, 2, and 3**, based on real exports from RDP v5.93. It recreates the event view as an interactive Plotly figure with:
+The app currently supports **RDP CSV Codes 1, 2, 3, and 4**, based on real exports from RDP v5.93. It recreates the event view as an interactive Plotly figure with:
 
 - a six-track ORF map labeled `+1`, `+2`, `+3`, `-1`, `-2`, `-3`;
 - ORF direction arrowheads derived from the RDP orientation field;
 - Code 1 pairwise-comparison curves;
 - Code 2 GENECONV box plots;
 - Code 3 SiScan substitution-series Z-score plots;
+- Code 4 3SEQ cumulative-height plots with permutation-bound envelopes;
 - beginning and ending breakpoint calls;
 - 95% and 99% breakpoint confidence intervals;
 - event metadata and gene tables; and
@@ -52,6 +53,10 @@ The first coordinate batch is yellow, the second is green, and the third is purp
 
 CSV Code 3 is rendered from the raw substitution-series Z-scores in the export. RDP v5.93's exported Code 3 color names are translated to the colors drawn in its SiScan panel; the viewer groups visibility controls by the resulting yellow, green, purple, and gray trace families and preserves the exported opacity. The exported upper and lower cutoffs are drawn as dotted lines. A black zero baseline and a subtle red recombinant-interval outline reproduce the important visual cues from RDP's SiScan panel.
 
+## Code 4 3SEQ plots
+
+CSV Code 4 is rendered from the exported 3SEQ cumulative-height series. The primary statistic is drawn as a black line, while the permutation upper and lower bounds form a gray envelope using the export's line and flood-fill transparency settings. Breakpoint calls, confidence intervals, and the recombinant-interval outline remain aligned with the ORF map.
+
 ## Use the web app
 
 Open:
@@ -93,8 +98,9 @@ The parser is intentionally grounded on supplied real examples rather than guess
 - 95% and 99% breakpoint confidence intervals;
 - plot colors and comparison roles;
 - Code 1 numerical line-plot data;
-- Code 2 three-batch box coordinates, transparency, and upper cutoff; and
-- Code 3 SiScan substitution types, plot colors, raw Z-scores, transparency, and upper/lower cutoffs.
+- Code 2 three-batch box coordinates, transparency, and upper cutoff;
+- Code 3 SiScan substitution types, plot colors, raw Z-scores, transparency, and upper/lower cutoffs; and
+- Code 4 3SEQ heights, permutation bounds, plot colors, and line/flood-fill transparency.
 
 Additional RDP CSV codes should be added from real example exports.
 
@@ -122,7 +128,7 @@ A Pages deployment workflow is included under `.github/workflows/pages.yml`. If 
 - `dark-shell.css` — dark theme (imported by `styles.css`)
 - `contact.js` — shared contact footer used on both pages
 - `zoom-controls.js` — event zoom, full-alignment reset, and keyboard navigation
-- `rdp-parser.js` — RDP CSV Code 1, Code 2, and Code 3 parser
+- `rdp-parser.js` — RDP CSV Code 1 through Code 4 parser
 - `app.js` — directory access and Plotly renderer
 
 ## Scope

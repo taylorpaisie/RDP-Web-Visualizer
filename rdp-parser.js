@@ -1,4 +1,4 @@
-/* Browser-only parser for RDP5 CSV Code 1, Code 2, and Code 3 plot exports. */
+/* Browser-only parser for RDP5 CSV Code 1 through Code 4 plot exports. */
 
 (function () {
   const COLOR_MAP = {
@@ -365,13 +365,127 @@
     };
   }
 
+  function parseCode4(common) {
+    const { filename, lines, genes, metadata, plotIndex } = common;
+    if (plotIndex + 3 > lines.length) throw new Error('The Code 4 Plot data section is incomplete.');
+
+    let transparency = [];
+    let floodFillTransparency = [];
+    let colorNames = [];
+    let floodFillPlots = [];
+    let header = null;
+    let dataStart = -1;
+
+    for (let i = plotIndex + 1; i < lines.length; i += 1) {
+      if (!lines[i].trim()) continue;
+      const parts = splitCsvLine(lines[i]);
+      const first = parts[0].replace(/:$/, '');
+      const numericSettings = parts.slice(1).map((value) => {
+        const number = Number(value);
+        return value !== '' && Number.isFinite(number) ? number : null;
+      });
+
+      if (first === 'Transparency') {
+        transparency = numericSettings;
+      } else if (first === 'Flood fill transparency') {
+        floodFillTransparency = numericSettings;
+      } else if (first === 'Colours' || first === 'Colors' || first === 'Plot colours' || first === 'Plot colors') {
+        colorNames = parts.slice(1);
+      } else if (first === 'Flood fill plots') {
+        floodFillPlots = numericSettings.filter(Number.isFinite);
+      } else if (first === 'Position in alignment') {
+        header = parts;
+        dataStart = i + 1;
+        break;
+      }
+    }
+
+    if (!header || header.length < 2 || dataStart < 0) {
+      throw new Error('The Code 4 plot-data header is missing.');
+    }
+
+    const rows = [];
+    for (const line of lines.slice(dataStart)) {
+      if (!line.trim()) continue;
+      const parts = splitCsvLine(line);
+      if (parts.length !== header.length) continue;
+      const values = parts.map(Number);
+      if (!values.every(Number.isFinite)) continue;
+      rows.push(values);
+    }
+    if (!rows.length) throw new Error('No numeric Code 4 plot data were found.');
+
+    const x = rows.map((row) => row[0]);
+    const series = header.slice(1).map((name, index) => {
+      const colorName = (colorNames[index] || 'black').toLowerCase();
+      return {
+        name,
+        role: name,
+        colorName,
+        color: COLOR_MAP[colorName] || FALLBACK_COLORS[index % FALLBACK_COLORS.length],
+        opacity: Number.isFinite(transparency[index]) ? transparency[index] : 1,
+        floodFillOpacity: Number.isFinite(floodFillTransparency[index]) ? floodFillTransparency[index] : 0,
+        floodFill: floodFillPlots.includes(index + 1),
+        groupIndex: 0,
+        y: rows.map((row) => row[index + 1]),
+      };
+    });
+    const allValues = series.flatMap((item) => item.y);
+    const primarySeries = series.find((item) => !/permutation\s+(upper|lower)\s+bound/i.test(item.name)) || series[0];
+    const upperBound = series.find((item) => /permutation\s+upper\s+bound/i.test(item.name));
+    const lowerBound = series.find((item) => /permutation\s+lower\s+bound/i.test(item.name));
+    const finalIndex = x.length - 1;
+    // RDP writes 0,0 as the final bound pair to close the flooded polygon.
+    // Its desktop plot closes that envelope on the primary series, rather
+    // than drawing the two bounds vertically back to zero.
+    if (upperBound && lowerBound && primarySeries
+      && upperBound.y[finalIndex] === 0 && lowerBound.y[finalIndex] === 0
+      && primarySeries.y[finalIndex] !== 0) {
+      upperBound.y[finalIndex] = primarySeries.y[finalIndex];
+      lowerBound.y[finalIndex] = primarySeries.y[finalIndex];
+    }
+    const exportedBandOpacities = [upperBound?.floodFillOpacity, lowerBound?.floodFillOpacity]
+      .filter((value) => Number.isFinite(value) && value > 0);
+    const bandOpacity = exportedBandOpacities.length ? Math.max(...exportedBandOpacities) : 0.25;
+
+    metadata['Transparency'] = transparency.filter(Number.isFinite).join(', ');
+    metadata['Flood fill transparency'] = floodFillTransparency.filter(Number.isFinite).join(', ');
+    metadata['Flood fill plots'] = floodFillPlots.join(', ');
+    metadata['Maximum X-axis value'] ??= Math.max(...x);
+
+    return {
+      filename,
+      code: 4,
+      kind: 'three-seq',
+      genes,
+      metadata,
+      x,
+      series,
+      groups: [{
+        index: 0,
+        name: primarySeries?.name || '3SEQ cumulative plot',
+        role: '3SEQ statistic and permutation bounds',
+        colorName: primarySeries?.colorName || 'black',
+        color: primarySeries?.color || COLOR_MAP.black,
+      }],
+      primarySeries,
+      upperBound,
+      lowerBound,
+      bandOpacity,
+      minY: Math.min(...allValues),
+      maxY: Math.max(...allValues),
+      rowCount: rows.length,
+    };
+  }
+
   function parseRdpCsv(text, filename = 'RDP export.csv') {
     const common = parseCommon(text, filename);
     const code = String(common.metadata['CSV Code'] ?? '');
     if (code === '1') return parseCode1(common);
     if (code === '2') return parseCode2(common);
     if (code === '3') return parseCode3(common);
-    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1, 2, and 3.`);
+    if (code === '4') return parseCode4(common);
+    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1, 2, 3, and 4.`);
   }
 
   function parseRdpCode1Csv(text, filename = 'RDP export.csv') {

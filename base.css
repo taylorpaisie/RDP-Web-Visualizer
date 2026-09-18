@@ -201,6 +201,7 @@ select:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.10)}
 .key-box{display:inline-block;width:16px;height:8px;border-radius:2px}
 .key-box.ci99{background:rgba(100,116,139,.13);border:1px solid rgba(100,116,139,.23)}
 .key-box.ci95{background:rgba(100,116,139,.23);border:1px solid rgba(100,116,139,.33)}
+.key-box.permutation{background:rgba(17,24,39,.25);border:1px solid rgba(17,24,39,.48)}
 .key-line{display:inline-block;width:17px;border-top:2px solid #64748b}
 .key-line.cutoff{border-top:2px dotted #475569}
 .key-line.zero{border-top-color:#111827}
