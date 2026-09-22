@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RDP Code 6 parser check</title>
+<pre id="result">Running…</pre>
+<script src="../rdp-parser.js"></script>
+<script>
+  (async () => {
+    const assert = (condition, message) => {
+      if (!condition) throw new Error(message);
+    };
+    try {
+      const response = await fetch('../examples/rdp-code-6-maxchi.csv');
+      assert(response.ok, 'Could not read the supplied Code 6 example');
+      const parsed = RDPParser.parseRdpCsv(await response.text(), 'rdp-code-6-maxchi.csv');
+      assert(parsed.code === 6 && parsed.kind === 'maxchi', 'Code 6 detection failed');
+      assert(parsed.metadata['Event number'] === 7, 'Event number differs from the example');
+      assert(parsed.metadata['Maximum X-axis value'] === 9594, 'Alignment length differs');
+      assert(parsed.metadata['Beginning breakpoint site'] === 3498, 'Beginning breakpoint differs');
+      assert(parsed.metadata['Ending breakpoint site'] === 9310, 'Ending breakpoint differs');
+      assert(parsed.genes.length === 12, 'ORF count differs');
+      assert(parsed.series.length === 3 && parsed.rowCount === 362, 'Comparison data are incomplete');
+      assert(parsed.series.map((s) => s.name).join('|') === 'R - T|R - U|T - U', 'Comparison order differs');
+      assert(parsed.series.map((s) => s.colorName).join('|') === 'yellow|green|purple', 'Displayed colors differ');
+      assert(Math.abs(parsed.series[1].y[0] - 19.49061) < 1e-6, 'Raw MaxChi values changed');
+      assert(Math.abs(parsed.lowerCutoff - 2.99573227355399) < 1e-10, 'Lower cutoff differs');
+      assert(Math.abs(parsed.upperCutoff - 4.66275783168157) < 1e-10, 'Upper cutoff differs');
+      document.querySelector('#result').textContent = `PASS: Code 6 event #7, ${parsed.rowCount} rows, three raw curves, both cutoffs`;
+    } catch (error) {
+      document.querySelector('#result').textContent = `FAIL: ${error.message}`;
+    }
+  })();
+</script>

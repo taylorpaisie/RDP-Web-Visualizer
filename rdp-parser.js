@@ -1,4 +1,4 @@
-/* Browser-only parser for RDP5 CSV Code 1 through Code 5 plot exports. */
+/* Browser-only parser for RDP5 CSV Code 1 through Code 6 plot exports. */
 
 (function () {
   const COLOR_MAP = {
@@ -614,6 +614,79 @@
     };
   }
 
+  function parseCode6(common) {
+    const { filename, lines, genes, metadata, plotIndex } = common;
+    let lowerCutoff = null;
+    let upperCutoff = null;
+    let colorNames = [];
+    let roleLabels = [];
+    let header = null;
+    let dataStart = -1;
+
+    for (let i = plotIndex + 1; i < lines.length; i += 1) {
+      if (!lines[i].trim()) continue;
+      const parts = splitCsvLine(lines[i]);
+      const key = parts[0].replace(/:$/, '');
+      if (key === 'Lower cutoff dotted line' || key === 'Upper cutoff dotted line') {
+        const value = Number(parts[1]);
+        if (Number.isFinite(value)) {
+          if (key === 'Lower cutoff dotted line') lowerCutoff = value;
+          else upperCutoff = value;
+        }
+      } else if (key === 'Plot colours' || key === 'Plot colors') {
+        colorNames = correctedPlotColors(parts.slice(1));
+      } else if (key === '' && parts.slice(1).some(Boolean)) {
+        roleLabels = parts.slice(1).map(normalizeDisplayLabel);
+      } else if (key === 'Position in alignment') {
+        header = parts;
+        dataStart = i + 1;
+        break;
+      }
+    }
+
+    if (!header || header.length < 2) throw new Error('The Code 6 plot-data header is missing.');
+    const rows = [];
+    for (const line of lines.slice(dataStart)) {
+      if (!line.trim()) continue;
+      const parts = splitCsvLine(line);
+      if (parts.length !== header.length) continue;
+      const values = parts.map(Number);
+      if (values.every(Number.isFinite)) rows.push(values);
+    }
+    if (!rows.length) throw new Error('No numeric Code 6 plot data were found.');
+
+    const x = rows.map((row) => row[0]);
+    const series = header.slice(1).map((name, index) => {
+      const colorName = (colorNames[index] || '').toLowerCase();
+      return {
+        name,
+        role: roleLabels[index] || name,
+        colorName,
+        color: COLOR_MAP[colorName] || FALLBACK_COLORS[index % FALLBACK_COLORS.length],
+        y: rows.map((row) => row[index + 1]),
+      };
+    });
+    const allValues = series.flatMap((item) => item.y);
+    metadata['Lower cutoff dotted line'] = lowerCutoff;
+    metadata['Upper cutoff dotted line'] = upperCutoff;
+    metadata['Maximum X-axis value'] ??= Math.max(...x);
+
+    return {
+      filename,
+      code: 6,
+      kind: 'maxchi',
+      genes,
+      metadata,
+      x,
+      series,
+      lowerCutoff,
+      upperCutoff,
+      minY: Math.min(...allValues, 0),
+      maxY: Math.max(...allValues, upperCutoff ?? 0),
+      rowCount: rows.length,
+    };
+  }
+
   function parseRdpCsv(text, filename = 'RDP export.csv') {
     const common = parseCommon(text, filename);
     const code = String(common.metadata['CSV Code'] ?? '');
@@ -622,7 +695,8 @@
     if (code === '3') return parseCode3(common);
     if (code === '4') return parseCode4(common);
     if (code === '5') return parseCode5(common);
-    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1, 2, 3, 4, and 5.`);
+    if (code === '6') return parseCode6(common);
+    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 6.`);
   }
 
   function parseRdpCode1Csv(text, filename = 'RDP export.csv') {

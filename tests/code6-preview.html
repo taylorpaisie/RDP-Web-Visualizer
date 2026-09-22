@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<pre id="result">Running…</pre>
+<iframe src="../index.html" style="width:1900px;height:1100px;border:0"></iframe>
+<script>
+  (async () => {
+    const frame = document.querySelector('iframe');
+    const result = document.querySelector('#result');
+    const assert = (condition, message) => {
+      if (!condition) throw new Error(message);
+    };
+    try {
+      await new Promise((resolve) => frame.addEventListener('load', resolve, { once: true }));
+      const csv = await (await fetch('../examples/rdp-code-6-maxchi.csv')).text();
+      const transfer = new DataTransfer();
+      transfer.items.add(new File([csv], 'rdp-code-6-maxchi.csv', { type: 'text/csv' }));
+      const input = frame.contentDocument.querySelector('#file-input');
+      input.files = transfer.files;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      for (let i = 0; i < 50; i += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        const plot = frame.contentDocument.querySelector('#rdp-plot');
+        if (plot.data?.length) {
+          const curves = plot.data.filter((trace) => trace.meta?.comparisonIndex !== undefined);
+          const shapes = plot.layout.shapes;
+          assert(curves.length === 3, 'Expected three MaxChi traces');
+          assert(curves.map((trace) => trace.line.color).join('|') === '#d4c91f|#159a9a|#a22aa8', 'Trace colors differ from RDP');
+          assert(Math.abs(curves[1].y[0] - 19.49061) < 1e-6, 'MaxChi values were rescaled');
+          assert(shapes.some((shape) => shape.y0 === 2.99573227355399 && shape.y1 === shape.y0), 'Lower cutoff missing');
+          assert(shapes.some((shape) => shape.y0 === 4.66275783168157 && shape.y1 === shape.y0), 'Upper cutoff missing');
+          assert(shapes.some((shape) => shape.x0 === 3498 && shape.x1 === 9310 && shape.y0 === 0), 'Recombinant interval missing');
+          assert(plot.layout.yaxis2.range[1] === 20, 'MaxChi axis range differs from the reference');
+          assert(frame.contentDocument.querySelector('#method-badge').textContent === 'MaxChi plot', 'Method badge missing');
+          result.textContent = `PASS: ${curves.length} MaxChi traces, both cutoffs, breakpoint interval, raw values`;
+          break;
+        }
+      }
+      if (!result.textContent.startsWith('PASS')) {
+        result.textContent = `FAIL: ${frame.contentDocument.querySelector('#status').textContent}`;
+      }
+    } catch (error) {
+      result.textContent = `FAIL: ${error.message}`;
+    }
+  })();
+</script>
