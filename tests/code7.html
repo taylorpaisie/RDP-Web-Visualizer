@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RDP Code 7 parser check</title>
+<pre id="result">Running…</pre>
+<script src="../rdp-parser.js"></script>
+<script>
+  (async () => {
+    const assert = (condition, message) => {
+      if (!condition) throw new Error(message);
+    };
+    try {
+      const response = await fetch('../examples/rdp-code-7-chimaera.csv');
+      assert(response.ok, 'Could not read the supplied Code 7 example');
+      const parsed = RDPParser.parseRdpCsv(await response.text(), 'rdp-code-7-chimaera.csv');
+      assert(parsed.code === 7 && parsed.kind === 'chimaera', 'Code 7 detection failed');
+      assert(parsed.metadata['Event number'] === 7, 'Event number differs from the example');
+      assert(parsed.metadata['Maximum X-axis value'] === 9594, 'Alignment length differs');
+      assert(parsed.metadata['Beginning breakpoint site'] === 3498, 'Beginning breakpoint differs');
+      assert(parsed.metadata['Ending breakpoint site'] === 9310, 'Ending breakpoint differs');
+      assert(parsed.genes.length === 12, 'ORF count differs');
+      assert(parsed.series.length === 3 && parsed.rowCount === 713, 'CHIMAERA data are incomplete');
+      assert(parsed.series.map((s) => s.name).join('|') === 'R|T|U', 'Sequence order differs');
+      assert(parsed.series.map((s) => s.colorName).join('|') === 'green|blue|red', 'Displayed colors differ');
+      assert(parsed.series.map((s) => s.x.length).join('|') === '239|157|317', 'Per-sequence position counts differ');
+      assert(parsed.series[0].x[3] === 50 && parsed.series[1].x[3] === 418 && parsed.series[2].x[3] === 46, 'Per-sequence coordinates were flattened');
+      assert(Math.abs(parsed.series[2].y[0] - 19.63469) < 1e-6, 'Raw CHIMAERA values changed');
+      assert(Math.abs(parsed.lowerCutoff - 2.99573227355399) < 1e-10, 'Lower cutoff differs');
+      assert(Math.abs(parsed.upperCutoff - 4.66275783168157) < 1e-10, 'Upper cutoff differs');
+      document.querySelector('#result').textContent = `PASS: Code 7 event #7, ${parsed.rowCount} points, three coordinate-aware curves, both cutoffs`;
+    } catch (error) {
+      document.querySelector('#result').textContent = `FAIL: ${error.message}`;
+    }
+  })();
+</script>

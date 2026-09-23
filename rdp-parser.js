@@ -1,4 +1,4 @@
-/* Browser-only parser for RDP5 CSV Code 1 through Code 6 plot exports. */
+/* Browser-only parser for RDP5 CSV Code 1 through Code 7 plot exports. */
 
 (function () {
   const COLOR_MAP = {
@@ -21,6 +21,13 @@
     green: '#159D82',
     blue: '#5865D8',
     red: '#D95D70',
+  };
+  const CODE7_COLORS = {
+    // CHIMAERA uses softer strokes in RDP's plot pane than the overview
+    // swatches used elsewhere in the application.
+    green: '#75b77b',
+    blue: '#7f8aca',
+    red: '#d88989',
   };
 
   function parsePair(values) {
@@ -687,6 +694,96 @@
     };
   }
 
+  function parseCode7(common) {
+    const { filename, lines, genes, metadata, plotIndex } = common;
+    let lowerCutoff = null;
+    let upperCutoff = null;
+    let colorNames = [];
+    const blocks = [];
+
+    for (let i = plotIndex + 1; i < lines.length;) {
+      if (!lines[i].trim()) {
+        i += 1;
+        continue;
+      }
+      const parts = splitCsvLine(lines[i]);
+      const key = parts[0].replace(/:$/, '');
+      if (key === 'Lower cutoff dotted line' || key === 'Upper cutoff dotted line') {
+        const value = Number(parts[1]);
+        if (Number.isFinite(value)) {
+          if (key === 'Lower cutoff dotted line') lowerCutoff = value;
+          else upperCutoff = value;
+        }
+        i += 1;
+      } else if (['Colours', 'Colors', 'Plot colours', 'Plot colors'].includes(key)) {
+        colorNames = parts.slice(1).filter(Boolean).map((value) => value.toLowerCase());
+        i += 1;
+      } else if (key === 'Position in alignment') {
+        const header = parts;
+        const rows = [];
+        i += 1;
+        while (i < lines.length && lines[i].trim()) {
+          const rowParts = splitCsvLine(lines[i]);
+          if (rowParts.length !== header.length) break;
+          const values = rowParts.map(Number);
+          if (!values.every(Number.isFinite)) break;
+          rows.push(values);
+          i += 1;
+        }
+        if (rows.length) blocks.push({ header, rows });
+      } else {
+        i += 1;
+      }
+    }
+
+    const primary = blocks.find((block) => block.header.length > 2);
+    if (!primary) throw new Error('The Code 7 CHIMAERA plot-data block is missing.');
+
+    const series = primary.header.slice(1).map((name, index) => {
+      // RDP 5.93 writes every curve's values into the first rectangular
+      // block, using the first curve's positions. It then writes a complete
+      // two-column block for each later curve because CHIMAERA curves use
+      // different informative-site coordinates. Prefer those blocks when
+      // present and use the rectangular data only for the first curve.
+      const ownBlock = index === 0 ? primary : blocks.find((block) => (
+        block.header.length === 2 && block.header[1] === name
+      ));
+      const rows = ownBlock || primary;
+      const yColumn = ownBlock ? 1 : index + 1;
+      const colorName = colorNames[index] || '';
+      return {
+        name,
+        role: `${name} as recombinant`,
+        colorName,
+        color: CODE7_COLORS[colorName] || COLOR_MAP[colorName] || FALLBACK_COLORS[index % FALLBACK_COLORS.length],
+        x: rows.rows.map((row) => row[0]),
+        y: rows.rows.map((row) => row[yColumn]),
+      };
+    });
+
+    if (!series.length || series.some((item) => !item.x.length)) {
+      throw new Error('No numeric Code 7 CHIMAERA plot data were found.');
+    }
+    const allValues = series.flatMap((item) => item.y);
+    metadata['Lower cutoff dotted line'] = lowerCutoff;
+    metadata['Upper cutoff dotted line'] = upperCutoff;
+    metadata['Maximum X-axis value'] ??= Math.max(...series.flatMap((item) => item.x));
+
+    return {
+      filename,
+      code: 7,
+      kind: 'chimaera',
+      genes,
+      metadata,
+      series,
+      lowerCutoff,
+      upperCutoff,
+      minY: Math.min(...allValues, 0),
+      maxY: Math.max(...allValues, upperCutoff ?? 0),
+      rowCount: series.reduce((total, item) => total + item.x.length, 0),
+    };
+  }
+
   function parseRdpCsv(text, filename = 'RDP export.csv') {
     const common = parseCommon(text, filename);
     const code = String(common.metadata['CSV Code'] ?? '');
@@ -696,7 +793,8 @@
     if (code === '4') return parseCode4(common);
     if (code === '5') return parseCode5(common);
     if (code === '6') return parseCode6(common);
-    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 6.`);
+    if (code === '7') return parseCode7(common);
+    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 7.`);
   }
 
   function parseRdpCode1Csv(text, filename = 'RDP export.csv') {
