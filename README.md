@@ -2,7 +2,7 @@
 
 A browser-only visualizer for RDP5 CSV exports. No Python, Conda, Docker, or local server is required.
 
-The app currently supports **RDP CSV Codes 1 through 7**, based on real exports from RDP v5.93. It recreates the event view as an interactive Plotly figure with:
+The app currently supports **RDP CSV Codes 1 through 8**, based on real exports from RDP v5.93. It recreates the event view as an interactive Plotly figure with:
 
 - a six-track ORF map labeled `+1`, `+2`, `+3`, `-1`, `-2`, `-3`;
 - ORF direction arrowheads derived from the RDP orientation field;
@@ -13,6 +13,7 @@ The app currently supports **RDP CSV Codes 1 through 7**, based on real exports 
 - Code 5 multi-sequence 3SEQ plots with colored envelopes;
 - Code 6 MaxChi comparison curves and significance cutoffs;
 - Code 7 CHIMAERA curves with per-sequence informative-site positions;
+- Code 8 single-recombinant CHIMAERA curves;
 - beginning and ending breakpoint calls;
 - 95% and 99% breakpoint confidence intervals;
 - event metadata and gene tables; and
@@ -72,6 +73,10 @@ CSV Code 6 is rendered from the exported MaxChi `-Log(chi2 p-val)` comparison va
 
 CSV Code 7 is rendered from the three exported CHIMAERA height curves. RDP v5.93 gives R, T, and U different informative-site coordinate arrays, so the parser uses each sequence's own positions rather than treating the first block as a shared x-axis. The viewer reproduces Darren's example with green, blue, and red curves, informative-site ticks at the top of the panel, both dotted significance cutoffs, nested 95%/99% confidence bands, reported breakpoint lines, and the red recombinant interval.
 
+## Code 8 single-recombinant CHIMAERA plots
+
+CSV Code 8 contains one black CHIMAERA curve for U as recombinant with R and T as parents. The viewer preserves its informative-site positions and raw heights, both significance cutoffs, breakpoint calls, nested confidence bands, and red recombinant interval. Darren's supplied CSV is stored in `examples/rdp-code-8-chimaera.csv`; its corresponding [RDP screenshot](images/rdp-code-8-reference.png) is kept for visual comparison.
+
 ## Use the web app
 
 Open:
@@ -118,7 +123,8 @@ The parser is intentionally grounded on supplied real examples rather than guess
 - Code 4 3SEQ heights, permutation bounds, plot colors, and line/flood-fill transparency;
 - Code 5 multi-block 3SEQ sequence series, colors, and line/flood-fill transparency; and
 - Code 6 MaxChi comparison values, plot colors, and upper/lower cutoffs; and
-- Code 7 CHIMAERA values, per-sequence informative-site positions, plot colors, and upper/lower cutoffs.
+- Code 7 CHIMAERA values, per-sequence informative-site positions, plot colors, and upper/lower cutoffs; and
+- Code 8 single-recombinant CHIMAERA values, informative-site positions, plot color, and upper/lower cutoffs.
 
 Additional RDP CSV codes should be added from real example exports.
 
@@ -132,7 +138,7 @@ python -m http.server 8000
 
 This is only for development. End users do **not** need Python when using the GitHub Pages site.
 
-With the local server running, open `tests/code6.html` or `tests/code7.html` for parser checks against Darren's supplied CSVs. The matching `code6-preview.html` and `code7-preview.html` pages load each CSV in the full visualizer and check its chart rendering. The example exports are stored under `examples/`.
+With the local server running, open `tests/code6.html`, `tests/code7.html`, or `tests/code8.html` for parser checks against Darren's supplied CSVs. The matching `code6-preview.html`, `code7-preview.html`, and `code8-preview.html` pages load each CSV in the full visualizer and check its chart rendering. The example exports are stored under `examples/`.
 
 ## GitHub Pages
 
@@ -148,10 +154,13 @@ A Pages deployment workflow is included under `.github/workflows/pages.yml`. If 
 - `dark-shell.css` — dark theme (imported by `styles.css`)
 - `contact.js` — shared contact footer used on both pages
 - `zoom-controls.js` — event zoom, full-alignment reset, and keyboard navigation
-- `rdp-parser.js` — RDP CSV Code 1 through Code 7 parser
+- `rdp-parser.js` — RDP CSV Code 1 through Code 8 parser
 - `app.js` — directory access and Plotly renderer
 - `examples/rdp-code-6-maxchi.csv` — supplied MaxChi example export
 - `examples/rdp-code-7-chimaera.csv` — supplied CHIMAERA example export
+- `examples/rdp-code-8-chimaera.csv` — supplied single-recombinant CHIMAERA export
+- `images/rdp-code-8-reference.png` — corresponding RDP screenshot
+- `tests/code8.html`, `tests/code8-preview.html` — Code 8 parser and rendering checks
 - `tests/code6.html`, `tests/code6-preview.html`, `tests/code7.html`, and `tests/code7-preview.html` — browser checks for parsing and chart rendering
 
 ## Scope

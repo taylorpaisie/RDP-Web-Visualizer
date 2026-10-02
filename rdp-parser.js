@@ -1,4 +1,4 @@
-/* Browser-only parser for RDP5 CSV Code 1 through Code 7 plot exports. */
+/* Browser-only parser for RDP5 CSV Code 1 through Code 8 plot exports. */
 
 (function () {
   const COLOR_MAP = {
@@ -694,7 +694,7 @@
     };
   }
 
-  function parseCode7(common) {
+  function parseChimaera(common, code) {
     const { filename, lines, genes, metadata, plotIndex } = common;
     let lowerCutoff = null;
     let upperCutoff = null;
@@ -736,8 +736,8 @@
       }
     }
 
-    const primary = blocks.find((block) => block.header.length > 2);
-    if (!primary) throw new Error('The Code 7 CHIMAERA plot-data block is missing.');
+    const primary = blocks.find((block) => block.header.length >= (code === 8 ? 2 : 3));
+    if (!primary) throw new Error(`The Code ${code} CHIMAERA plot-data block is missing.`);
 
     const series = primary.header.slice(1).map((name, index) => {
       // RDP 5.93 writes every curve's values into the first rectangular
@@ -753,7 +753,7 @@
       const colorName = colorNames[index] || '';
       return {
         name,
-        role: `${name} as recombinant`,
+        role: code === 8 ? name : `${name} as recombinant`,
         colorName,
         color: CODE7_COLORS[colorName] || COLOR_MAP[colorName] || FALLBACK_COLORS[index % FALLBACK_COLORS.length],
         x: rows.rows.map((row) => row[0]),
@@ -762,7 +762,7 @@
     });
 
     if (!series.length || series.some((item) => !item.x.length)) {
-      throw new Error('No numeric Code 7 CHIMAERA plot data were found.');
+      throw new Error(`No numeric Code ${code} CHIMAERA plot data were found.`);
     }
     const allValues = series.flatMap((item) => item.y);
     metadata['Lower cutoff dotted line'] = lowerCutoff;
@@ -771,7 +771,7 @@
 
     return {
       filename,
-      code: 7,
+      code,
       kind: 'chimaera',
       genes,
       metadata,
@@ -793,8 +793,8 @@
     if (code === '4') return parseCode4(common);
     if (code === '5') return parseCode5(common);
     if (code === '6') return parseCode6(common);
-    if (code === '7') return parseCode7(common);
-    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 7.`);
+    if (code === '7' || code === '8') return parseChimaera(common, Number(code));
+    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 8.`);
   }
 
   function parseRdpCode1Csv(text, filename = 'RDP export.csv') {
