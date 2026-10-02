@@ -1,4 +1,4 @@
-/* Browser-only parser for RDP5 CSV Code 1 through Code 8 plot exports. */
+/* Browser-only parser for RDP5 CSV Code 1 through Code 9 plot exports. */
 
 (function () {
   const COLOR_MAP = {
@@ -784,6 +784,45 @@
     };
   }
 
+  function parseCode9(common) {
+    const { filename, lines, genes, metadata, plotIndex } = common;
+    // The initial pairwise header is an RDP export preamble. The Colours
+    // row and following sequence header describe the actual PhylPro data.
+    let colors = [];
+    let header = null;
+    const rows = [];
+    for (const line of lines.slice(plotIndex + 1)) {
+      if (!line.trim()) continue;
+      const parts = splitCsvLine(line);
+      const key = parts[0].replace(/:$/, '');
+      if (key === 'Colours' || key === 'Colors') {
+        colors = parts.slice(1).map((name) => name.toLowerCase());
+        header = null;
+      } else if (key === 'Position in alignment' && colors.length) {
+        header = parts;
+      } else if (header && parts.length === header.length) {
+        const values = parts.map((value) => value === '' ? NaN : Number(value));
+        if (values.every(Number.isFinite)) rows.push(values);
+      }
+    }
+    if (!header || header.length < 2 || !rows.length) {
+      throw new Error('No numeric Code 9 PHYLPRO plot data were found.');
+    }
+    const x = rows.map((row) => row[0]);
+    const series = header.slice(1).map((name, index) => {
+      const colorName = colors[index] || '';
+      return {
+        name, role: `${name} PhylPro correlation`, colorName,
+        color: CODE7_COLORS[colorName] || COLOR_MAP[colorName] || FALLBACK_COLORS[index % FALLBACK_COLORS.length],
+        y: rows.map((row) => row[index + 1]),
+      };
+    });
+    const values = series.flatMap((item) => item.y);
+    metadata['Maximum X-axis value'] ??= Math.max(...x);
+    return { filename, code: 9, kind: 'phylpro', genes, metadata, x, series,
+      minY: Math.min(...values), maxY: Math.max(...values), rowCount: rows.length };
+  }
+
   function parseRdpCsv(text, filename = 'RDP export.csv') {
     const common = parseCommon(text, filename);
     const code = String(common.metadata['CSV Code'] ?? '');
@@ -794,7 +833,8 @@
     if (code === '5') return parseCode5(common);
     if (code === '6') return parseCode6(common);
     if (code === '7' || code === '8') return parseChimaera(common, Number(code));
-    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 8.`);
+    if (code === '9') return parseCode9(common);
+    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 9.`);
   }
 
   function parseRdpCode1Csv(text, filename = 'RDP export.csv') {

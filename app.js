@@ -346,6 +346,30 @@ function renderPlot(parsed) {
         xaxis: 'x2', yaxis: 'y2',
       });
     }
+  } else if (parsed.kind === 'phylpro') {
+    for (const [index, series] of parsed.series.entries()) {
+      traces.push({
+        meta: { comparisonIndex: index },
+        type: 'scatter', mode: 'lines', x: parsed.x, y: series.y,
+        name: series.role, line: { color: series.color, width: 1.8 },
+        opacity: 0.82, showlegend: false, xaxis: 'x2', yaxis: 'y2',
+        hovertemplate: `${series.name}<br>Position %{x:,}<br>Correlation coefficient %{y:.6f}<extra></extra>`,
+      });
+    }
+    const bottom = Math.floor(parsed.minY * 100) / 100;
+    yRange = [bottom, Math.max(1, Math.ceil(parsed.maxY * 100) / 100)];
+    traces.push({
+      type: 'scatter', mode: 'markers', x: parsed.x,
+      y: parsed.x.map(() => yRange[1]),
+      name: 'Informative sites', marker: { symbol: 'line-ns', size: 7, color: '#111827', opacity: 0.65 },
+      hovertemplate: 'Informative site<br>Position %{x:,}<extra></extra>',
+      showlegend: false, xaxis: 'x2', yaxis: 'y2',
+    });
+    const interval = recombinantIntervalShape(metadata);
+    if (interval) shapes.push(interval);
+    plotBackground = '#f3f4f6';
+    y2Grid = '#d9dee5';
+    x2Ticks = [1, Math.floor(maxX * 0.25), Math.floor(maxX * 0.5), Math.round(maxX * 0.75), maxX];
   } else if (parsed.kind === 'boxes') {
     const opacity = Math.max(0, Math.min(1, Number(parsed.transparency) || 0.25));
     for (const [index, batch] of parsed.batches.entries()) {
@@ -557,7 +581,7 @@ function renderPlot(parsed) {
 
   const layout = {
     autosize: true,
-    height: ['boxes', 'siscan', 'maxchi', 'chimaera', 'three-seq', 'three-seq-overview'].includes(parsed.kind) ? 760 : 720,
+    height: ['boxes', 'siscan', 'maxchi', 'chimaera', 'phylpro', 'three-seq', 'three-seq-overview'].includes(parsed.kind) ? 760 : 720,
     margin: { l: 64, r: 18, t: 36, b: 58 },
     paper_bgcolor: '#ffffff',
     plot_bgcolor: plotBackground,
@@ -585,7 +609,7 @@ function renderPlot(parsed) {
     xaxis2: {
       domain: [0, 1], anchor: 'y2', range: [0, maxX], matches: 'x',
       title: { text: metadata['X-axis label'] || 'Position in alignment', standoff: 10, font: { size: 11, color: '#475569' } },
-      gridcolor: ['boxes', 'siscan', 'maxchi', 'chimaera', 'three-seq', 'three-seq-overview'].includes(parsed.kind) ? '#e3e7ec' : '#edf1f5',
+      gridcolor: ['boxes', 'siscan', 'maxchi', 'chimaera', 'phylpro', 'three-seq', 'three-seq-overview'].includes(parsed.kind) ? '#e3e7ec' : '#edf1f5',
       gridwidth: 1,
       zeroline: false,
       showline: true,
@@ -671,6 +695,7 @@ function renderParsed(parsed) {
     ? 'GENECONV box plot'
       : parsed.kind === 'siscan' ? 'SiScan Z-score plot'
         : parsed.kind === 'maxchi' ? 'MaxChi plot'
+          : parsed.kind === 'phylpro' ? 'PhylPro correlation plot'
           : parsed.kind === 'chimaera' ? 'CHIMAERA plot'
             : parsed.kind === 'three-seq' ? '3SEQ cumulative plot'
               : parsed.kind === 'three-seq-overview' ? '3SEQ sequence overview' : 'Pairwise identity';
@@ -818,10 +843,10 @@ els.exportFigure.addEventListener('click', async () => {
     data.forEach((trace) => {
       const index = trace.meta?.comparisonIndex;
       if (!Number.isInteger(index)) return;
-      trace.showlegend = ['siscan', 'maxchi', 'chimaera', 'three-seq', 'three-seq-overview'].includes(parsed.kind) ? false : comparisonVisible[index];
+      trace.showlegend = ['siscan', 'maxchi', 'chimaera', 'phylpro', 'three-seq', 'three-seq-overview'].includes(parsed.kind) ? false : comparisonVisible[index];
       trace.name = figureText(items[index].role || items[index].name || 'Comparison');
     });
-    if (['boxes', 'siscan', 'maxchi', 'chimaera', 'three-seq', 'three-seq-overview'].includes(parsed.kind)) items.forEach((item, index) => {
+    if (['boxes', 'siscan', 'maxchi', 'chimaera', 'phylpro', 'three-seq', 'three-seq-overview'].includes(parsed.kind)) items.forEach((item, index) => {
       if (comparisonVisible[index]) data.push({
         type: 'scatter', x: [null], y: [null], xaxis: 'x2', yaxis: 'y2',
         mode: 'lines', line: { color: item.color, width: 3 },
@@ -834,7 +859,7 @@ els.exportFigure.addEventListener('click', async () => {
     layout.title = { text: figureText(parsed.metadata['Event title'] || parsed.filename), x: 0.04, font: { size: 20 } };
     layout.annotations = [...(layout.annotations || []), {
       xref: 'paper', yref: 'paper', x: 0, y: -0.23, xanchor: 'left', showarrow: false,
-      text: `CSV Code ${figureText(parsed.code ?? parsed.metadata['CSV Code'] ?? '')} · Event ${figureText(parsed.metadata['Event number'] ?? '—')} · ${comparisonVisible.filter(Boolean).length}/${items.length} trace groups shown<br>Gray bands: 95% (darker) / 99% (lighter) CI · Vertical lines: reported breakpoints${parsed.kind === 'boxes' ? '<br>Dotted line: upper cutoff · Red baseline: recombinant interval' : parsed.kind === 'siscan' ? '<br>Dotted lines: upper/lower cutoffs · Black line: zero · Red outline: recombinant interval' : parsed.kind === 'maxchi' ? '<br>Dotted lines: upper/lower cutoffs · Red baseline: recombinant interval' : parsed.kind === 'chimaera' ? '<br>Dotted lines: upper/lower cutoffs · Top ticks: informative sites · Red baseline: recombinant interval' : parsed.kind === 'three-seq' ? '<br>Gray envelope: permutation bounds · Black line: 3SEQ height · Red outline: recombinant interval' : parsed.kind === 'three-seq-overview' ? '<br>Colored envelopes: L, K, and O 3SEQ series · Red outline: recombinant interval' : ''}`,
+      text: `CSV Code ${figureText(parsed.code ?? parsed.metadata['CSV Code'] ?? '')} · Event ${figureText(parsed.metadata['Event number'] ?? '—')} · ${comparisonVisible.filter(Boolean).length}/${items.length} trace groups shown<br>Gray bands: 95% (darker) / 99% (lighter) CI · Vertical lines: reported breakpoints${parsed.kind === 'boxes' ? '<br>Dotted line: upper cutoff · Red baseline: recombinant interval' : parsed.kind === 'siscan' ? '<br>Dotted lines: upper/lower cutoffs · Black line: zero · Red outline: recombinant interval' : parsed.kind === 'maxchi' ? '<br>Dotted lines: upper/lower cutoffs · Red baseline: recombinant interval' : parsed.kind === 'phylpro' ? '<br>Top ticks: informative sites · Red outline: recombinant interval' : parsed.kind === 'chimaera' ? '<br>Dotted lines: upper/lower cutoffs · Top ticks: informative sites · Red baseline: recombinant interval' : parsed.kind === 'three-seq' ? '<br>Gray envelope: permutation bounds · Black line: 3SEQ height · Red outline: recombinant interval' : parsed.kind === 'three-seq-overview' ? '<br>Colored envelopes: L, K, and O 3SEQ series · Red outline: recombinant interval' : ''}`,
       font: { size: 12, color: '#475569' }, align: 'left',
     }];
     await Plotly.newPlot(exportPlot, data, layout, { staticPlot: true });
@@ -842,7 +867,7 @@ els.exportFigure.addEventListener('click', async () => {
     format,
     filename,
     width: 1600,
-    height: ['boxes', 'siscan', 'maxchi', 'chimaera', 'three-seq', 'three-seq-overview'].includes(parsed.kind) ? 1200 : 1110,
+    height: ['boxes', 'siscan', 'maxchi', 'chimaera', 'phylpro', 'three-seq', 'three-seq-overview'].includes(parsed.kind) ? 1200 : 1110,
     scale: vector ? 1 : 2,
     });
   } catch (error) {
