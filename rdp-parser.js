@@ -1,4 +1,4 @@
-/* Browser-only parser for RDP5 CSV Code 1 through Code 9 plot exports. */
+/* Browser-only parser for RDP5 CSV Code 1 through Code 10 plot exports. */
 
 (function () {
   const COLOR_MAP = {
@@ -130,9 +130,9 @@
     return { filename, lines, genes, metadata, plotIndex };
   }
 
-  function parseCode1(common) {
+  function parsePairwise(common, code = 1) {
     const { filename, lines, genes, metadata, plotIndex } = common;
-    if (plotIndex + 4 > lines.length) throw new Error('The Code 1 Plot data section is incomplete.');
+    if (plotIndex + 4 > lines.length) throw new Error(`The Code ${code} Plot data section is incomplete.`);
 
     const rawColorNames = splitCsvLine(lines[plotIndex + 1]).slice(1).filter(Boolean);
     const colorNames = correctedPlotColors(rawColorNames);
@@ -161,14 +161,14 @@
     }));
 
     const rawMax = Math.max(...series.flatMap((s) => s.raw));
-    const scale = rawMax > 0 ? rawMax : 1;
+    const scale = code === 10 ? 1 : (rawMax > 0 ? rawMax : 1);
     for (const item of series) item.y = item.raw.map((value) => value / scale);
 
     metadata['Maximum X-axis value'] ??= Math.max(...x);
     return {
       filename,
-      code: 1,
-      kind: 'lines',
+      code,
+      kind: code === 10 ? 'distance' : 'lines',
       genes,
       metadata,
       x,
@@ -826,7 +826,7 @@
   function parseRdpCsv(text, filename = 'RDP export.csv') {
     const common = parseCommon(text, filename);
     const code = String(common.metadata['CSV Code'] ?? '');
-    if (code === '1') return parseCode1(common);
+    if (code === '1') return parsePairwise(common);
     if (code === '2') return parseCode2(common);
     if (code === '3') return parseCode3(common);
     if (code === '4') return parseCode4(common);
@@ -834,7 +834,8 @@
     if (code === '6') return parseCode6(common);
     if (code === '7' || code === '8') return parseChimaera(common, Number(code));
     if (code === '9') return parseCode9(common);
-    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 9.`);
+    if (code === '10') return parsePairwise(common, 10);
+    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 10.`);
   }
 
   function parseRdpCode1Csv(text, filename = 'RDP export.csv') {
