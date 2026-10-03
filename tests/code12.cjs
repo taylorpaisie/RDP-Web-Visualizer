@@ -40,8 +40,40 @@ context.fixture = parsed;
 vm.runInContext('renderParsed(fixture)', context);
 const plot = elements.get('#rdp-plot');
 const ticks = plot.data.find((trace) => trace.name === 'Plotted breakpoint positions');
-assert.equal(ticks.x.length, 601);
-assert.equal(ticks.marker.opacity, 0.18);
+assert.equal(ticks.x.length, 601 * 3);
+assert.equal(ticks.mode, 'lines');
+assert.equal(ticks.opacity, 0.25);
+assert.equal(ticks.line.width, 1);
+assert.equal(ticks.connectgaps, false);
+parsed.breakpointPositions.forEach((position, index) => {
+  assert.equal(ticks.x[index * 3], position);
+  assert.equal(ticks.x[index * 3 + 1], position);
+  assert.equal(ticks.x[index * 3 + 2], null);
+  assert.equal(ticks.y[index * 3], 0.35);
+  assert.equal(ticks.y[index * 3 + 1], 0.65);
+  assert.equal(ticks.y[index * 3 + 2], null);
+});
+const reverseIndex = parsed.genes.findIndex((gene) => gene.orientation === 2);
+const reverseGene = parsed.genes[reverseIndex];
+assert.equal(reverseGene.start, 7780);
+assert.equal(reverseGene.end, 7133);
+assert.equal(reverseGene.length, 648);
+assert.equal(plot.data[0].base[reverseIndex], 7133);
+assert.equal(plot.data[0].x[reverseIndex], 648);
+assert.equal(plot.data[1].x[reverseIndex], 7133);
+assert.equal(plot.data[1].marker.symbol[reverseIndex], 'triangle-left');
+// Orientation, rather than the order of the exported bounds, controls arrows.
+context.orfFixtures = [
+  {start: 10, end: 20, length: 11, frame: 1, orientation: 2},
+  {start: 20, end: 10, length: 11, frame: 1, orientation: 1},
+];
+const orfTraces = vm.runInContext('buildOrfTraces(orfFixtures)', context);
+assert.equal(orfTraces[0].base[0], 10);
+assert.equal(orfTraces[0].base[1], 10);
+assert.equal(orfTraces[1].x[0], 10);
+assert.equal(orfTraces[1].x[1], 20);
+assert.equal(orfTraces[1].marker.symbol[0], 'triangle-left');
+assert.equal(orfTraces[1].marker.symbol[1], 'triangle-right');
 assert.equal(ticks.xaxis, 'x3');
 assert.equal(ticks.meta, undefined); // keep ticks visible when curve group hidden
 assert.equal(plot.layout.xaxis3.matches, 'x');
@@ -66,4 +98,4 @@ vm.runInContext('renderParsed(fixture)', context);
 assert.equal(plot.layout.xaxis3, undefined);
 assert.equal(plot.data.filter((trace) => trace.meta?.comparisonIndex !== undefined).length, 3);
 assert.equal(parse(code6 + '\nBreakpoint positions\n26\n').breakpointPositions[0], 26);
-console.log('PASS: Code 12 source values, envelopes, 601 transparent aligned ticks, malformed rows, reusable breakpoint section, Code 6 regression');
+console.log('PASS: Code 12 source values, envelopes, 601 explicit transparent aligned ticks, descending reverse ORF and arrow endpoint, malformed rows, reusable breakpoint section, Code 6 regression');

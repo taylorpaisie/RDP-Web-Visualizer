@@ -205,7 +205,7 @@ function buildOrfTraces(genes) {
   const geneTrace = {
     type: 'bar', orientation: 'h',
     x: genes.map((g) => g.length),
-    base: genes.map((g) => g.start),
+    base: genes.map((g) => Math.min(g.start, g.end)),
     y: genes.map(signedFrameY),
     width: 0.42,
     marker: {
@@ -226,7 +226,7 @@ function buildOrfTraces(genes) {
   const geneDirectionTrace = {
     type: 'scatter',
     mode: 'markers',
-    x: genes.map((g) => g.orientation === 2 ? g.start : g.end),
+    x: genes.map((g) => g.orientation === 2 ? Math.min(g.start, g.end) : Math.max(g.start, g.end)),
     y: genes.map(signedFrameY),
     marker: {
       symbol: genes.map((g) => g.orientation === 2 ? 'triangle-left' : 'triangle-right'),
@@ -666,9 +666,13 @@ function renderPlot(parsed) {
   // A separate matched axis keeps these short ticks in the gap rather
   // than covering the density curve or moving with its y-axis range.
   if (parsed.breakpointPositions?.length) traces.push({
-    type: 'scatter', mode: 'markers', x: parsed.breakpointPositions,
-    y: parsed.breakpointPositions.map(() => 0.5), name: 'Plotted breakpoint positions',
-    marker: { symbol: 'line-ns', size: 8, color: '#111827', opacity: 0.18 },
+    // Explicit strokes avoid zero-width line-symbol marker outlines. Nulls
+    // separate the ticks so adjacent breakpoint calls are never connected.
+    type: 'scatter', mode: 'lines',
+    x: parsed.breakpointPositions.flatMap((position) => [position, position, null]),
+    y: parsed.breakpointPositions.flatMap(() => [0.35, 0.65, null]),
+    name: 'Plotted breakpoint positions', connectgaps: false,
+    line: { color: '#111827', width: 1 }, opacity: 0.25,
     hovertemplate: 'Plotted breakpoint<br>Position %{x:,}<extra></extra>',
     showlegend: false, xaxis: 'x3', yaxis: 'y3',
   });

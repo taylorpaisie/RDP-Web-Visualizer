@@ -92,7 +92,7 @@
       if (parts.length < 4) continue;
       const [start, end, frame, orientation] = parts.slice(0, 4).map(Number);
       if (![start, end, frame, orientation].every(Number.isFinite)) continue;
-      genes.push({ start, end, frame, orientation, length: end - start + 1 });
+      genes.push({ start, end, frame, orientation, length: Math.abs(end - start) + 1 });
     }
 
     const metadata = {};

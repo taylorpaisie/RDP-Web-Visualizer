@@ -36,7 +36,7 @@ The exports provide a frame and an orientation for each ORF. The web view combin
 - orientation `1` (left → right) maps to `+1`, `+2`, or `+3`;
 - orientation `2` (right → left) maps to `-1`, `-2`, or `-3`.
 
-For example, frame `1` + orientation `1` is shown on `+1`, while frame `1` + orientation `2` is shown on `-1`. Directional arrowheads are also drawn at the end of each ORF.
+For example, frame `1` + orientation `1` is shown on `+1`, while frame `1` + orientation `2` is shown on `-1`. Directional arrowheads appear at the lower-coordinate end for reverse ORFs and the higher-coordinate end for forward ORFs. Bars span the coordinate bounds with a positive length even when an export lists the coordinates in descending order.
 
 ## RDP comparison colors
 
@@ -98,7 +98,7 @@ CSV Code 11 renders one outlined box per event, using columns 6 and 7 for alignm
 
 Code 12 shows the exported breakpoint density per 200 nt window as a black curve, with a lighter 99% confidence envelope and darker 95% envelope. Both dotted cutoffs retain their exported values and labels, even when the value labeled “Lower” exceeds the value labeled “Upper”. The supplied CSV contains 4,778 plot rows, 29 ORFs, and 601 breakpoint positions across a 9,556-position alignment.
 
-The separate `Breakpoint positions` section after the main plot supplies the short vertical ticks between the plot and ORF map. These use 0.18 opacity (82% transparency), remain visible when the density group is hidden, and share the alignment axis for zooming and figure export. Positions and repeated calls are preserved; these are distinct from a single event's beginning/ending breakpoint lines. The parser reads this trailing section for any supported export that supplies it.
+The separate `Breakpoint positions` section after the main plot supplies the short vertical ticks between the plot and ORF map. These use 0.25 opacity (75% transparency), remain visible when the density group is hidden, and share the alignment axis for zooming and figure export. Positions and repeated calls are preserved; these are distinct from a single event's beginning/ending breakpoint lines. The parser reads this trailing section for any supported export that supplies it.
 
 ## Use the web app
 
