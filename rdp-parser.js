@@ -1,4 +1,4 @@
-/* Browser-only parser for RDP5 CSV Code 1 through Code 11 plot exports. */
+/* Browser-only parser for RDP5 CSV Code 1 through Code 12 plot exports. */
 
 (function () {
   const COLOR_MAP = {
@@ -856,8 +856,76 @@
       maxHeight: Math.max(...series.map((event) => event.height)), rowCount: series.length };
   }
 
-  function parseRdpCsv(text, filename = 'RDP export.csv') {
-    const common = parseCommon(text, filename);
+  // Keep the trailing breakpoint list separate from numeric plot rows.
+  // Shared by Code 12 and future exports that supply this section.
+  function parseBreakpointPositions(common) {
+    const index = common.lines.findIndex((line) => /^Breakpoint positions:?(?:\s*)$/i.test(line.trim()));
+    if (index < 0) return [];
+    const positions = [];
+    for (let i = index + 1; i < common.lines.length; i += 1) {
+      const line = common.lines[i].trim();
+      if (!line) continue;
+      const fields = splitCsvLine(line);
+      const position = Number(fields[0]);
+      if (fields.length !== 1 || !Number.isInteger(position) || position < 1
+        || (Number.isFinite(common.metadata['Maximum X-axis value'])
+          && position > common.metadata['Maximum X-axis value'])) {
+        throw new Error(`Invalid breakpoint position on line ${i + 1}.`);
+      }
+      // Preserve repeated calls so coincident markers can accumulate opacity.
+      positions.push(position);
+    }
+    return positions;
+  }
+
+  function parseCode12(common) {
+    const { filename, lines, genes, metadata, plotIndex } = common;
+    let header = null;
+    let upperCutoff = null;
+    let lowerCutoff = null;
+    const rows = [];
+    for (let i = plotIndex + 1; i < lines.length; i += 1) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const fields = splitCsvLine(line);
+      const key = fields[0].replace(/:$/, '');
+      if (/^Breakpoint positions$/i.test(key)) break;
+      if (key === 'Upper cutoff dotted line' || key === 'Lower cutoff dotted line') {
+        const value = fields[1] ? Number(fields[1]) : NaN;
+        if (!Number.isFinite(value)) throw new Error(`Invalid Code 12 cutoff on line ${i + 1}.`);
+        metadata[key] = value;
+        if (key.startsWith('Upper')) upperCutoff = value;
+        else lowerCutoff = value;
+      } else if (key === 'Position in alignment') {
+        header = fields;
+      } else if (header) {
+        const values = fields.map((value) => value === '' ? NaN : Number(value));
+        if (fields.length !== header.length || !values.every(Number.isFinite)) {
+          throw new Error(`Invalid Code 12 plot row on line ${i + 1}.`);
+        }
+        rows.push(values);
+      }
+    }
+    const expected = ['Upper 99% CI', 'Lower 99% CI', 'Upper 95% CI', 'Lower 95% CI'];
+    if (!header || header.length !== 6 || !expected.every((name) => header.includes(name)) || !rows.length) {
+      throw new Error('The Code 12 density curve or confidence-envelope columns are missing.');
+    }
+    const x = rows.map((row) => row[0]);
+    const series = header.slice(1).map((name, index) => ({
+      name, role: name, color: '#111827', groupIndex: 0,
+      y: rows.map((row) => row[index + 1]),
+    }));
+    const values = rows.flatMap((row) => row.slice(1));
+    metadata['Maximum X-axis value'] ??= Math.max(...x);
+    metadata['Event title'] ??= 'Breakpoint distribution';
+    return { filename, code: 12, kind: 'breakpoint-distribution', genes, metadata, x, series,
+      groups: [{ name: header[1], role: 'Breakpoint density and confidence envelopes', color: '#111827' }],
+      upperCutoff, lowerCutoff,
+      minY: Math.min(0, ...values), maxY: Math.max(...values, upperCutoff ?? 0, lowerCutoff ?? 0),
+      rowCount: rows.length };
+  }
+
+  function parsePlotCsv(common) {
     const code = String(common.metadata['CSV Code'] ?? '');
     if (code === '1') return parsePairwise(common);
     if (code === '2') return parseCode2(common);
@@ -869,7 +937,16 @@
     if (code === '9') return parseCode9(common);
     if (code === '10') return parsePairwise(common, 10);
     if (code === '11') return parseCode11(common);
-    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 11.`);
+    if (code === '12') return parseCode12(common);
+    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 12.`);
+  }
+
+  function parseRdpCsv(text, filename = 'RDP export.csv') {
+    const common = parseCommon(text, filename);
+    const parsed = parsePlotCsv(common);
+    parsed.breakpointPositions = parseBreakpointPositions(common);
+    if (parsed.breakpointPositions.length) parsed.metadata['Plotted breakpoint count'] = parsed.breakpointPositions.length;
+    return parsed;
   }
 
   function parseRdpCode1Csv(text, filename = 'RDP export.csv') {

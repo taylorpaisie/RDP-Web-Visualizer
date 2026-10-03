@@ -39,7 +39,7 @@ let comparisonVisible = [];
 
 function comparisonItems(parsed) {
   if (parsed.kind === 'boxes') return parsed.batches;
-  if (['siscan', 'three-seq', 'three-seq-overview'].includes(parsed.kind)) return parsed.groups;
+  if (['siscan', 'three-seq', 'three-seq-overview', 'breakpoint-distribution'].includes(parsed.kind)) return parsed.groups;
   return parsed.series;
 }
 
@@ -332,7 +332,38 @@ function renderPlot(parsed) {
   let y2Ticks = null;
   let y2TickText = null;
 
-  if (parsed.kind === 'lines') {
+  if (parsed.kind === 'breakpoint-distribution') {
+    const addEnvelope = (level, opacity) => {
+      const lower = parsed.series.find((item) => item.name === `Lower ${level}% CI`);
+      const upper = parsed.series.find((item) => item.name === `Upper ${level}% CI`);
+      for (const [index, series] of [lower, upper].entries()) traces.push({
+        meta: { comparisonIndex: 0 }, type: 'scatter', mode: 'lines',
+        x: parsed.x, y: series.y, name: series.name,
+        line: { color: hexToRgba('#64748b', opacity), width: 0.6 },
+        ...(index === 1 ? { fill: 'tonexty', fillcolor: hexToRgba('#64748b', opacity) } : {}),
+        hovertemplate: `${series.name}<br>Position %{x:,}<br>Breakpoints %{y:.3f}<extra></extra>`,
+        showlegend: false, xaxis: 'x2', yaxis: 'y2',
+      });
+    };
+    addEnvelope(99, 0.13);
+    addEnvelope(95, 0.28);
+    traces.push({
+      meta: { comparisonIndex: 0 }, type: 'scatter', mode: 'lines',
+      x: parsed.x, y: parsed.series[0].y, name: parsed.series[0].name,
+      line: { color: '#111827', width: 1.6 }, showlegend: false,
+      hovertemplate: 'Position %{x:,}<br>Breakpoints per window %{y:.3f}<extra></extra>',
+      xaxis: 'x2', yaxis: 'y2',
+    });
+    for (const value of [parsed.upperCutoff, parsed.lowerCutoff]) {
+      const shape = cutoffShape(value);
+      if (shape) shapes.push(shape);
+    }
+    yRange = [0, parsed.maxY * 1.04];
+    hovermode = 'closest';
+    plotBackground = '#f3f4f6';
+    y2Grid = '#d9dee5';
+    x2Ticks = [1, Math.floor(maxX * 0.25), Math.floor(maxX * 0.5), Math.round(maxX * 0.75), maxX];
+  } else if (parsed.kind === 'lines') {
     for (const [index, s] of parsed.series.entries()) {
       traces.push({
         meta: { comparisonIndex: index },
@@ -632,9 +663,19 @@ function renderPlot(parsed) {
     ];
   }
 
+  // A separate matched axis keeps these short ticks in the gap rather
+  // than covering the density curve or moving with its y-axis range.
+  if (parsed.breakpointPositions?.length) traces.push({
+    type: 'scatter', mode: 'markers', x: parsed.breakpointPositions,
+    y: parsed.breakpointPositions.map(() => 0.5), name: 'Plotted breakpoint positions',
+    marker: { symbol: 'line-ns', size: 8, color: '#111827', opacity: 0.18 },
+    hovertemplate: 'Plotted breakpoint<br>Position %{x:,}<extra></extra>',
+    showlegend: false, xaxis: 'x3', yaxis: 'y3',
+  });
+
   const layout = {
     autosize: true,
-    height: ['boxes', 'siscan', 'maxchi', 'chimaera', 'phylpro', 'distance', 'event-map', 'three-seq', 'three-seq-overview'].includes(parsed.kind) ? 760 : 720,
+    height: ['boxes', 'siscan', 'maxchi', 'chimaera', 'phylpro', 'distance', 'event-map', 'three-seq', 'three-seq-overview', 'breakpoint-distribution'].includes(parsed.kind) ? 760 : 720,
     margin: { l: 64, r: 18, t: 36, b: 58 },
     paper_bgcolor: '#ffffff',
     plot_bgcolor: plotBackground,
@@ -662,7 +703,7 @@ function renderPlot(parsed) {
     xaxis2: {
       domain: [0, 1], anchor: 'y2', range: [0, maxX], matches: 'x',
       title: { text: metadata['X-axis label'] || 'Position in alignment', standoff: 10, font: { size: 11, color: '#475569' } },
-      gridcolor: ['boxes', 'siscan', 'maxchi', 'chimaera', 'phylpro', 'distance', 'event-map', 'three-seq', 'three-seq-overview'].includes(parsed.kind) ? '#e3e7ec' : '#edf1f5',
+      gridcolor: ['boxes', 'siscan', 'maxchi', 'chimaera', 'phylpro', 'distance', 'event-map', 'three-seq', 'three-seq-overview', 'breakpoint-distribution'].includes(parsed.kind) ? '#e3e7ec' : '#edf1f5',
       gridwidth: 1,
       zeroline: false,
       showline: true,
@@ -693,6 +734,10 @@ function renderPlot(parsed) {
       tickcolor: '#94a3b8',
       ...(y2Ticks ? { tickmode: 'array', tickvals: y2Ticks, ticktext: y2TickText } : {}),
     },
+    ...(parsed.breakpointPositions?.length ? {
+      xaxis3: { domain: [0, 1], anchor: 'y3', range: [0, maxX], matches: 'x', visible: false },
+      yaxis3: { domain: [0.72, 0.77], anchor: 'x3', range: [0, 1], visible: false, fixedrange: true },
+    } : {}),
     shapes,
     annotations,
   };
@@ -738,13 +783,13 @@ function renderParsed(parsed) {
   els.plotTitle.textContent = m['Event title'] || parsed.filename;
   els.metricEvent.textContent = m['Event number'] != null ? `#${m['Event number']}` : '—';
   els.metricBreakpoints.textContent = Number.isFinite(m['Beginning breakpoint site']) && Number.isFinite(m['Ending breakpoint site'])
-    ? `${m['Beginning breakpoint site'].toLocaleString()}–${m['Ending breakpoint site'].toLocaleString()}` : '—';
+    ? `${m['Beginning breakpoint site'].toLocaleString()}–${m['Ending breakpoint site'].toLocaleString()}` : parsed.breakpointPositions?.length ? `${parsed.breakpointPositions.length.toLocaleString()} positions` : '—';
   els.metricGenes.textContent = parsed.genes.length.toLocaleString();
   els.metricSeries.textContent = (parsed.kind === 'boxes'
     ? parsed.batches.length
-    : parsed.kind === 'three-seq-overview' ? parsed.groups.length : parsed.series.length).toLocaleString();
+    : ['three-seq-overview', 'breakpoint-distribution'].includes(parsed.kind) ? parsed.groups.length : parsed.series.length).toLocaleString();
   els.formatBadge.textContent = `CSV Code ${m['CSV Code'] ?? parsed.code ?? '—'}`;
-  els.methodBadge.textContent = parsed.kind === 'event-map' ? 'Recombination event map' : parsed.kind === 'boxes'
+  els.methodBadge.textContent = parsed.kind === 'breakpoint-distribution' ? 'Breakpoint distribution' : parsed.kind === 'event-map' ? 'Recombination event map' : parsed.kind === 'boxes'
     ? 'GENECONV box plot'
       : parsed.kind === 'siscan' ? 'SiScan Z-score plot'
         : parsed.kind === 'maxchi' ? 'MaxChi plot'
@@ -897,10 +942,10 @@ els.exportFigure.addEventListener('click', async () => {
     data.forEach((trace) => {
       const index = trace.meta?.comparisonIndex;
       if (!Number.isInteger(index)) return;
-      trace.showlegend = ['siscan', 'maxchi', 'chimaera', 'phylpro', 'distance', 'event-map', 'three-seq', 'three-seq-overview'].includes(parsed.kind) ? false : comparisonVisible[index];
+      trace.showlegend = ['siscan', 'maxchi', 'chimaera', 'phylpro', 'distance', 'event-map', 'three-seq', 'three-seq-overview', 'breakpoint-distribution'].includes(parsed.kind) ? false : comparisonVisible[index];
       trace.name = figureText(items[index].role || items[index].name || 'Comparison');
     });
-    if (['boxes', 'siscan', 'maxchi', 'chimaera', 'phylpro', 'distance', 'event-map', 'three-seq', 'three-seq-overview'].includes(parsed.kind)) items.forEach((item, index) => {
+    if (['boxes', 'siscan', 'maxchi', 'chimaera', 'phylpro', 'distance', 'event-map', 'three-seq', 'three-seq-overview', 'breakpoint-distribution'].includes(parsed.kind)) items.forEach((item, index) => {
       if (comparisonVisible[index]) data.push({
         type: 'scatter', x: [null], y: [null], xaxis: 'x2', yaxis: 'y2',
         mode: 'lines', line: { color: item.color, width: 3 },
@@ -913,7 +958,7 @@ els.exportFigure.addEventListener('click', async () => {
     layout.title = { text: figureText(parsed.metadata['Event title'] || parsed.filename), x: 0.04, font: { size: 20 } };
     layout.annotations = [...(layout.annotations || []), {
       xref: 'paper', yref: 'paper', x: 0, y: -0.23, xanchor: 'left', showarrow: false,
-      text: `CSV Code ${figureText(parsed.code ?? parsed.metadata['CSV Code'] ?? '')} · Event ${figureText(parsed.metadata['Event number'] ?? '—')} · ${comparisonVisible.filter(Boolean).length}/${items.length} trace groups shown<br>Gray bands: 95% (darker) / 99% (lighter) CI · Vertical lines: reported breakpoints${parsed.kind === 'boxes' ? '<br>Dotted line: upper cutoff · Red baseline: recombinant interval' : parsed.kind === 'siscan' ? '<br>Dotted lines: upper/lower cutoffs · Black line: zero · Red outline: recombinant interval' : parsed.kind === 'maxchi' ? '<br>Dotted lines: upper/lower cutoffs · Red baseline: recombinant interval' : parsed.kind === 'event-map' ? '<br>Box extents: event coordinates · Height: -log(best p-value) · Colors: exported hex codes' : parsed.kind === 'distance' ? '<br>Distance increases downward · Top ticks: sampled positions · Red outline: recombinant interval' : parsed.kind === 'phylpro' ? '<br>Top ticks: informative sites · Red outline: recombinant interval' : parsed.kind === 'chimaera' ? '<br>Dotted lines: upper/lower cutoffs · Top ticks: informative sites · Red baseline: recombinant interval' : parsed.kind === 'three-seq' ? '<br>Gray envelope: permutation bounds · Black line: 3SEQ height · Red outline: recombinant interval' : parsed.kind === 'three-seq-overview' ? '<br>Colored envelopes: L, K, and O 3SEQ series · Red outline: recombinant interval' : ''}`,
+      text: `CSV Code ${figureText(parsed.code ?? parsed.metadata['CSV Code'] ?? '')} · Event ${figureText(parsed.metadata['Event number'] ?? '—')} · ${comparisonVisible.filter(Boolean).length}/${items.length} trace groups shown<br>${parsed.kind === 'breakpoint-distribution' ? 'Gray envelopes: 95% (darker) / 99% (lighter) CI · Dotted lines: exported cutoffs' : 'Gray bands: 95% (darker) / 99% (lighter) CI · Vertical lines: reported breakpoints'}${parsed.breakpointPositions?.length ? '<br>Faint ticks between plot and ORF map: plotted breakpoint positions' : ''}${parsed.kind === 'boxes' ? '<br>Dotted line: upper cutoff · Red baseline: recombinant interval' : parsed.kind === 'siscan' ? '<br>Dotted lines: upper/lower cutoffs · Black line: zero · Red outline: recombinant interval' : parsed.kind === 'maxchi' ? '<br>Dotted lines: upper/lower cutoffs · Red baseline: recombinant interval' : parsed.kind === 'event-map' ? '<br>Box extents: event coordinates · Height: -log(best p-value) · Colors: exported hex codes' : parsed.kind === 'distance' ? '<br>Distance increases downward · Top ticks: sampled positions · Red outline: recombinant interval' : parsed.kind === 'phylpro' ? '<br>Top ticks: informative sites · Red outline: recombinant interval' : parsed.kind === 'chimaera' ? '<br>Dotted lines: upper/lower cutoffs · Top ticks: informative sites · Red baseline: recombinant interval' : parsed.kind === 'three-seq' ? '<br>Gray envelope: permutation bounds · Black line: 3SEQ height · Red outline: recombinant interval' : parsed.kind === 'three-seq-overview' ? '<br>Colored envelopes: L, K, and O 3SEQ series · Red outline: recombinant interval' : ''}`,
       font: { size: 12, color: '#475569' }, align: 'left',
     }];
     await Plotly.newPlot(exportPlot, data, layout, { staticPlot: true });
@@ -921,7 +966,7 @@ els.exportFigure.addEventListener('click', async () => {
     format,
     filename,
     width: 1600,
-    height: ['boxes', 'siscan', 'maxchi', 'chimaera', 'phylpro', 'distance', 'event-map', 'three-seq', 'three-seq-overview'].includes(parsed.kind) ? 1200 : 1110,
+    height: ['boxes', 'siscan', 'maxchi', 'chimaera', 'phylpro', 'distance', 'event-map', 'three-seq', 'three-seq-overview', 'breakpoint-distribution'].includes(parsed.kind) ? 1200 : 1110,
     scale: vector ? 1 : 2,
     });
   } catch (error) {

@@ -2,7 +2,7 @@
 
 A browser-only visualizer for RDP5 CSV exports. No Python, Conda, Docker, or local server is required.
 
-The app supports **RDP CSV Codes 1 through 11**, based on supplied exports from RDP v5.93. It displays the ORF map alongside interactive plots, with breakpoint calls, 95% and 99% confidence intervals, significance cutoffs, and other annotations when the export provides them.
+The app supports **RDP CSV Codes 1 through 12**, based on supplied exports from RDP v5.93. It displays the ORF map alongside interactive plots, with breakpoint calls, 95% and 99% confidence intervals, significance cutoffs, and other annotations when the export provides them.
 
 | CSV code | Plot | Key features |
 | --- | --- | --- |
@@ -17,6 +17,7 @@ The app supports **RDP CSV Codes 1 through 11**, based on supplied exports from 
 | 9 | PhylPro | Raw sequence correlation coefficients and informative-site ticks |
 | 10 | Distance | Raw pairwise distances, with zero at the top and increasing distance downward |
 | 11 | Recombination event map | One outlined box per event, exact exported hex colors, and boundary-hover metadata |
+| 12 | Breakpoint distribution | Density curve, nested 95%/99% confidence envelopes, both cutoffs, and transparent breakpoint ticks |
 
 The viewer also provides a six-track ORF map (`+1`, `+2`, `+3`, `-1`, `-2`, `-3`) with direction arrows, metadata and gene tables, and PNG, SVG, JPEG, and WebP figure downloads.
 
@@ -93,6 +94,12 @@ CSV Code 10 contains three pairwise distance curves. The viewer displays T–L i
 
 CSV Code 11 renders one outlined box per event, using columns 6 and 7 for alignment coordinates, column 8 for the height, and the literal hexadecimal color in column 10. Hover near a box boundary to see all source columns, including the event number, method, recombinant, parents, coordinates, p-value statistic, distance, and color. Each event can be hidden or isolated through the legend. The supplied [reference screenshot](images/rdp-code-11-reference.png) accompanies `examples/rdp-code-11-event-map.csv`. The supplied overview contains 14 events and has no single event breakpoint or confidence interval; those annotations are drawn only when supplied in the metadata.
 
+## CSV Code 12: breakpoint distribution
+
+Code 12 shows the exported breakpoint density per 200 nt window as a black curve, with a lighter 99% confidence envelope and darker 95% envelope. Both dotted cutoffs retain their exported values and labels, even when the value labeled “Lower” exceeds the value labeled “Upper”. The supplied CSV contains 4,778 plot rows, 29 ORFs, and 601 breakpoint positions across a 9,556-position alignment.
+
+The separate `Breakpoint positions` section after the main plot supplies the short vertical ticks between the plot and ORF map. These use 0.18 opacity (82% transparency), remain visible when the density group is hidden, and share the alignment axis for zooming and figure export. Positions and repeated calls are preserved; these are distinct from a single event's beginning/ending breakpoint lines. The parser reads this trailing section for any supported export that supplies it.
+
 ## Use the web app
 
 Open:
@@ -143,7 +150,8 @@ The parser is intentionally grounded on supplied real examples rather than guess
 - Code 8 single-recombinant CHIMAERA values, informative-site positions, plot color, and upper/lower cutoffs;
 - Code 9 PhylPro sequence correlations, plot colors, and alignment positions;
 - Code 10 raw pairwise distances, comparison colors, and alignment positions;
-- Code 11 event box coordinates, heights, hexadecimal colors, and per-event metadata.
+- Code 11 event box coordinates, heights, hexadecimal colors, and per-event metadata;
+- Code 12 breakpoint density, 95%/99% envelopes, cutoffs, and trailing breakpoint positions.
 
 Additional RDP CSV codes should be added from real example exports.
 
@@ -157,6 +165,8 @@ python -m http.server 8000
 
 This is only for development. End users do **not** need Python when using the GitHub Pages site.
 
+Run `node tests/code12.cjs` to verify Code 12 parsing, rendered trace geometry, transparent ticks, and the supplied Code 6 regression.
+
 With the local server running, open the parser or visualizer checks listed below. Each visualizer check loads its CSV through the app's file picker and verifies the resulting Plotly figure. Code 10 checks also verify that Code 1 normalization still works; Code 11 checks cover event geometry, colors, hover metadata, and isolate/show-all controls.
 
 | Code | Example CSV | Parser check | Visualizer check | RDP reference |
@@ -167,6 +177,7 @@ With the local server running, open the parser or visualizer checks listed below
 | 9 | [PhylPro](examples/rdp-code-9-phylpro.csv) | [Parser](tests/code9.html) | [Visualizer](tests/code9-preview.html) | [Screenshot](images/rdp-code-9-reference.png) |
 | 10 | [Distance](examples/rdp-code-10-distance.csv) | [Parser](tests/code10.html) | [Visualizer](tests/code10-preview.html) | [Screenshot](images/rdp-code-10-reference.png) |
 | 11 | [Event map](examples/rdp-code-11-event-map.csv) | [Parser](tests/code11.html) | [Visualizer](tests/code11-preview.html) | [Screenshot](images/rdp-code-11-reference.png) |
+| 12 | [Breakpoint distribution](examples/rdp-code-12-breakpoint-distribution.csv) | [Parser and renderer](tests/code12.cjs) | — | [Screenshot](images/rdp-code-12-reference.png) |
 
 ## GitHub Pages
 
