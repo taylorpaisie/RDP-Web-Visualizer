@@ -1,4 +1,4 @@
-/* Browser-only parser for RDP5 CSV Code 1 through Code 10 plot exports. */
+/* Browser-only parser for RDP5 CSV Code 1 through Code 11 plot exports. */
 
 (function () {
   const COLOR_MAP = {
@@ -823,6 +823,39 @@
       minY: Math.min(...values), maxY: Math.max(...values), rowCount: rows.length };
   }
 
+  function parseCode11(common) {
+    const { filename, lines, genes, metadata, plotIndex } = common;
+    const headerIndex = lines.findIndex((line, index) => index > plotIndex && line.trim());
+    const header = headerIndex < 0 ? [] : splitCsvLine(lines[headerIndex]);
+    if (header.length < 10 || header[0] !== 'Recombination Event Number') {
+      throw new Error('The Code 11 recombination-event header is missing.');
+    }
+    const series = [];
+    for (let i = headerIndex + 1; i < lines.length; i += 1) {
+      if (!lines[i].trim()) continue;
+      const fields = splitCsvLine(lines[i]);
+      const [start, end, height] = fields.slice(5, 8).map((value) => value === '' ? NaN : Number(value));
+      const color = fields[9] || '';
+      if (fields.length !== header.length || ![start, end, height].every(Number.isFinite)
+        || height < 0 || !/^#[0-9a-f]{6}$/i.test(color)) {
+        throw new Error(`Invalid Code 11 event box or color on line ${i + 1}.`);
+      }
+      series.push({
+        name: `Event #${fields[0]} · ${fields[1]}`,
+        role: `${fields[2]} recombinant · ${fields[4]} major / ${fields[3]} minor parent`,
+        color, colorName: color, start, end, height,
+        // Keep all source columns, including any additional metadata.
+        details: header.map((label, index) => ({ label, value: fields[index] })),
+      });
+    }
+    if (!series.length) throw new Error('No Code 11 recombination-event boxes were found.');
+    metadata['Event title'] ??= 'Recombination event map';
+    metadata['Event count'] = series.length;
+    metadata['Maximum X-axis value'] ??= Math.max(...series.map((event) => Math.max(event.start, event.end)));
+    return { filename, code: 11, kind: 'event-map', genes, metadata, series,
+      maxHeight: Math.max(...series.map((event) => event.height)), rowCount: series.length };
+  }
+
   function parseRdpCsv(text, filename = 'RDP export.csv') {
     const common = parseCommon(text, filename);
     const code = String(common.metadata['CSV Code'] ?? '');
@@ -835,7 +868,8 @@
     if (code === '7' || code === '8') return parseChimaera(common, Number(code));
     if (code === '9') return parseCode9(common);
     if (code === '10') return parsePairwise(common, 10);
-    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 10.`);
+    if (code === '11') return parseCode11(common);
+    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 11.`);
   }
 
   function parseRdpCode1Csv(text, filename = 'RDP export.csv') {

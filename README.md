@@ -2,7 +2,7 @@
 
 A browser-only visualizer for RDP5 CSV exports. No Python, Conda, Docker, or local server is required.
 
-The app currently supports **RDP CSV Codes 1 through 10**, based on real exports from RDP v5.93. It recreates the event view as an interactive Plotly figure with:
+The app currently supports **RDP CSV Codes 1 through 11**, based on real exports from RDP v5.93. It recreates the event view as an interactive Plotly figure with:
 
 - a six-track ORF map labeled `+1`, `+2`, `+3`, `-1`, `-2`, `-3`;
 - ORF direction arrowheads derived from the RDP orientation field;
@@ -16,6 +16,7 @@ The app currently supports **RDP CSV Codes 1 through 10**, based on real exports
 - Code 8 single-recombinant CHIMAERA curves;
 - Code 9 PhylPro correlation curves;
 - Code 10 pairwise distance curves with a reversed distance axis;
+- Code 11 recombination event boxes with exported colors and metadata tooltips;
 - beginning and ending breakpoint calls;
 - 95% and 99% breakpoint confidence intervals;
 - event metadata and gene tables; and
@@ -87,6 +88,10 @@ CSV Code 9 contains raw T, L, and K correlation coefficients, displayed in green
 
 CSV Code 10 contains three pairwise distance curves. The viewer displays T–L in yellow, T–K in teal, and L–K in purple, with zero at the top and increasing distance downward. Exported distances are preserved without normalization. The supplied CSV has 477 sampled positions and a maximum distance of 1.0, whereas the [reference screenshot](images/rdp-code-10-reference.png) shows a scale ending near 0.45; the viewer fits its axis to the CSV values. Breakpoint calls, confidence bands, and the red event outline remain aligned with the ORF map.
 
+## Code 11 recombination event maps
+
+CSV Code 11 renders one outlined box per event, using columns 6 and 7 for alignment coordinates, column 8 for the height, and the literal hexadecimal color in column 10. Hover near a box boundary to see all source columns, including the event number, method, recombinant, parents, coordinates, p-value statistic, distance, and color. Each event can be hidden or isolated through the legend. The supplied [reference screenshot](images/rdp-code-11-reference.png) accompanies `examples/rdp-code-11-event-map.csv`. This overview has no single event breakpoint or confidence interval; those annotations are drawn only when supplied in the metadata.
+
 ## Use the web app
 
 Open:
@@ -136,7 +141,8 @@ The parser is intentionally grounded on supplied real examples rather than guess
 - Code 7 CHIMAERA values, per-sequence informative-site positions, plot colors, and upper/lower cutoffs; and
 - Code 8 single-recombinant CHIMAERA values, informative-site positions, plot color, and upper/lower cutoffs; and
 - Code 9 PhylPro sequence correlations, plot colors, and alignment positions; and
-- Code 10 raw pairwise distances, comparison colors, and alignment positions.
+- Code 10 raw pairwise distances, comparison colors, and alignment positions; and
+- Code 11 event box coordinates, heights, hexadecimal colors, and per-event metadata.
 
 Additional RDP CSV codes should be added from real example exports.
 
@@ -150,7 +156,7 @@ python -m http.server 8000
 
 This is only for development. End users do **not** need Python when using the GitHub Pages site.
 
-With the local server running, open `tests/code6.html`, `tests/code7.html`, `tests/code8.html`, `tests/code9.html`, or `tests/code10.html` for parser checks against Darren's supplied CSVs. The matching `code6-preview.html`, `code7-preview.html`, `code8-preview.html`, `code9-preview.html`, and `code10-preview.html` pages load each CSV in the full visualizer and check its chart rendering. The example exports are stored under `examples/`.
+With the local server running, open `tests/code6.html`, `tests/code7.html`, `tests/code8.html`, `tests/code9.html`, `tests/code10.html`, or `tests/code11.html` for parser checks against Darren's supplied CSVs. The matching `code6-preview.html`, `code7-preview.html`, `code8-preview.html`, `code9-preview.html`, `code10-preview.html`, and `code11-preview.html` pages load each CSV in the full visualizer and check its chart rendering. The example exports are stored under `examples/`.
 
 ## GitHub Pages
 
@@ -166,7 +172,7 @@ A Pages deployment workflow is included under `.github/workflows/pages.yml`. If 
 - `dark-shell.css` — dark theme (imported by `styles.css`)
 - `contact.js` — shared contact footer used on both pages
 - `zoom-controls.js` — event zoom, full-alignment reset, and keyboard navigation
-- `rdp-parser.js` — RDP CSV Code 1 through Code 10 parser
+- `rdp-parser.js` — RDP CSV Code 1 through Code 11 parser
 - `app.js` — directory access and Plotly renderer
 - `examples/rdp-code-6-maxchi.csv` — supplied MaxChi example export
 - `examples/rdp-code-7-chimaera.csv` — supplied CHIMAERA example export
@@ -182,6 +188,10 @@ A Pages deployment workflow is included under `.github/workflows/pages.yml`. If 
 - `examples/rdp-code-10-distance.csv` — supplied distance export
 - `images/rdp-code-10-reference.png` — corresponding RDP screenshot
 - `tests/code10.html`, `tests/code10-preview.html` — Code 10 parser and rendering checks
+
+- `examples/rdp-code-11-event-map.csv` — supplied event-map export
+- `images/rdp-code-11-reference.png` — corresponding RDP screenshot
+- `tests/code11.html`, `tests/code11-preview.html` — Code 11 parser and rendering checks
 
 ## Scope
 
