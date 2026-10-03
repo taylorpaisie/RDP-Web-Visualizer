@@ -2,30 +2,29 @@
 
 A browser-only visualizer for RDP5 CSV exports. No Python, Conda, Docker, or local server is required.
 
-The app currently supports **RDP CSV Codes 1 through 11**, based on real exports from RDP v5.93. It recreates the event view as an interactive Plotly figure with:
+The app supports **RDP CSV Codes 1 through 11**, based on supplied exports from RDP v5.93. It displays the ORF map alongside interactive plots, with breakpoint calls, 95% and 99% confidence intervals, significance cutoffs, and other annotations when the export provides them.
 
-- a six-track ORF map labeled `+1`, `+2`, `+3`, `-1`, `-2`, `-3`;
-- ORF direction arrowheads derived from the RDP orientation field;
-- Code 1 pairwise-comparison curves;
-- Code 2 GENECONV box plots;
-- Code 3 SiScan substitution-series Z-score plots;
-- Code 4 3SEQ cumulative-height plots with permutation-bound envelopes;
-- Code 5 multi-sequence 3SEQ plots with colored envelopes;
-- Code 6 MaxChi comparison curves and significance cutoffs;
-- Code 7 CHIMAERA curves with per-sequence informative-site positions;
-- Code 8 single-recombinant CHIMAERA curves;
-- Code 9 PhylPro correlation curves;
-- Code 10 pairwise distance curves with a reversed distance axis;
-- Code 11 recombination event boxes with exported colors and metadata tooltips;
-- beginning and ending breakpoint calls;
-- 95% and 99% breakpoint confidence intervals;
-- event metadata and gene tables; and
-- PNG, SVG, JPEG, and WebP figure export with comparison legends and annotation guidance.
+| CSV code | Plot | Key features |
+| --- | --- | --- |
+| 1 | Pairwise comparisons | Comparison curves normalized to the largest exported value; raw values in hover details |
+| 2 | GENECONV | Box coordinates, heights, exported transparency, and upper cutoff |
+| 3 | SiScan | Substitution-series Z-scores, comparison groups, and significance cutoffs |
+| 4 | 3SEQ | Cumulative-height curve and permutation-bound envelope |
+| 5 | Multi-sequence 3SEQ | Separate sequence curves and colored permutation envelopes |
+| 6 | MaxChi | Parent/recombinant comparison curves and significance cutoffs |
+| 7 | CHIMAERA | Three curves with each sequence's own informative-site positions |
+| 8 | Single-recombinant CHIMAERA | One black curve with informative-site ticks and significance cutoffs |
+| 9 | PhylPro | Raw sequence correlation coefficients and informative-site ticks |
+| 10 | Distance | Raw pairwise distances, with zero at the top and increasing distance downward |
+| 11 | Recombination event map | One outlined box per event, exact exported hex colors, and boundary-hover metadata |
+
+The viewer also provides a six-track ORF map (`+1`, `+2`, `+3`, `-1`, `-2`, `-3`) with direction arrows, metadata and gene tables, and PNG, SVG, JPEG, and WebP figure downloads.
 
 ## Exploring and exporting figures
 
-- Click a comparison in the legend to show or hide its curves or boxes. **Only** isolates that comparison; **Show all** restores every comparison. ORFs, breakpoint calls, and confidence intervals remain visible. Loading an export resets comparison visibility.
-- **Zoom to event** fits the reported breakpoints and available 95%/99% confidence intervals with surrounding context. It is disabled when either breakpoint is missing. Intervals crossing the alignment origin use the full alignment so both ends stay visible.
+- Click a comparison or Code 11 event in the legend to show or hide its curves or boxes. **Only** isolates that item; **Show all** restores every item. ORFs, breakpoint calls, and confidence intervals remain visible. Loading an export resets comparison visibility.
+- Hover over a curve for its values. In Code 11, hover near a box boundary to see all exported event fields, including the method, recombinant, parents, coordinates, statistic, distance, and color.
+- **Zoom to event** fits the reported breakpoints and available 95%/99% confidence intervals with surrounding context. It is disabled when either breakpoint is missing, including the supplied Code 11 overview. Intervals crossing the alignment origin use the full alignment so both ends stay visible.
 - **Full alignment** restores the original axes. The existing +/− buttons, arrow-key panning, and 0/double-click reset remain available.
 - **Export figure** saves the current view and comparison selection with a title, comparison legend, event identifier, and annotation key. Export preparation leaves the on-screen chart unchanged. The chart's separate camera shortcut is removed so downloads use this shared export flow.
 
@@ -40,11 +39,13 @@ For example, frame `1` + orientation `1` is shown on `+1`, while frame `1` + ori
 
 ## RDP comparison colors
 
-The RDP export color order for the two recombinant comparisons is corrected in the browser view so the displayed comparisons match the RDP figure:
+For pairwise comparison plots, the RDP export color order for the two recombinant comparisons is corrected in the browser view so the displayed comparisons match the RDP figure:
 
 - Major Parent - Minor Parent: yellow
 - Major Parent - Recombinant: green
 - Minor Parent - Recombinant: purple
+
+CHIMAERA and PhylPro sequence plots use their own sequence colors. Code 11 uses the hexadecimal color supplied for each event without remapping it.
 
 ## Code 2 box plots
 
@@ -82,7 +83,7 @@ CSV Code 8 contains one black CHIMAERA curve for U as recombinant with R and T a
 
 ## Code 9 PhylPro plots
 
-CSV Code 9 contains raw T, L, and K correlation coefficients, displayed in green, blue, and red. The parser uses the sequence header following `Colours` rather than the earlier pairwise preamble. Informative-site ticks, breakpoint confidence bands, and a red event outline accompany a y-axis fitted to the correlation range. The supplied [reference screenshot](images/rdp-code-9-reference.png) accompanies `examples/rdp-code-9-phylpro.csv`.
+CSV Code 9 contains raw T, L, and K correlation coefficients, displayed in green, blue, and red. The parser uses the sequence header following `Colours` rather than the earlier pairwise preamble. Informative-site ticks, breakpoint confidence bands, and a red event outline accompany a y-axis fitted to the correlation range. The supplied CSV contains 6,053 positions and a minimum correlation of 0.8023456; its [reference screenshot](images/rdp-code-9-reference.png) shows dips near 0.72. The viewer preserves the CSV values. The example is stored in `examples/rdp-code-9-phylpro.csv`.
 
 ## Code 10 distance plots
 
@@ -90,7 +91,7 @@ CSV Code 10 contains three pairwise distance curves. The viewer displays T–L i
 
 ## Code 11 recombination event maps
 
-CSV Code 11 renders one outlined box per event, using columns 6 and 7 for alignment coordinates, column 8 for the height, and the literal hexadecimal color in column 10. Hover near a box boundary to see all source columns, including the event number, method, recombinant, parents, coordinates, p-value statistic, distance, and color. Each event can be hidden or isolated through the legend. The supplied [reference screenshot](images/rdp-code-11-reference.png) accompanies `examples/rdp-code-11-event-map.csv`. This overview has no single event breakpoint or confidence interval; those annotations are drawn only when supplied in the metadata.
+CSV Code 11 renders one outlined box per event, using columns 6 and 7 for alignment coordinates, column 8 for the height, and the literal hexadecimal color in column 10. Hover near a box boundary to see all source columns, including the event number, method, recombinant, parents, coordinates, p-value statistic, distance, and color. Each event can be hidden or isolated through the legend. The supplied [reference screenshot](images/rdp-code-11-reference.png) accompanies `examples/rdp-code-11-event-map.csv`. The supplied overview contains 14 events and has no single event breakpoint or confidence interval; those annotations are drawn only when supplied in the metadata.
 
 ## Use the web app
 
@@ -115,7 +116,7 @@ Browsers without the File System Access API can still use **Choose one CSV**. Th
 
 ## About page
 
-Use **About** in the header to open [the About page](about.html), which includes a project overview, privacy and scope information, citation guidance, and contact details. Use **Visualizer** to return to the app.
+Use **About** in the header to open [the About page](about.html), which includes supported plot types, event-map hover guidance, file-loading and export options, privacy and scope information, citation guidance, and contact details. Use **Visualizer** to return to the app.
 
 The About page displays `images/ham-and-peng.png` at its original aspect ratio with descriptive alternative text. To replace the image, update its `src`, `width`, `height`, and `alt` attributes in `about.html`. Keep image assets in `images/` and use relative paths so they work under the GitHub Pages repository URL.
 
@@ -136,12 +137,12 @@ The parser is intentionally grounded on supplied real examples rather than guess
 - Code 2 three-batch box coordinates, transparency, and upper cutoff;
 - Code 3 SiScan substitution types, plot colors, raw Z-scores, transparency, and upper/lower cutoffs;
 - Code 4 3SEQ heights, permutation bounds, plot colors, and line/flood-fill transparency;
-- Code 5 multi-block 3SEQ sequence series, colors, and line/flood-fill transparency; and
-- Code 6 MaxChi comparison values, plot colors, and upper/lower cutoffs; and
-- Code 7 CHIMAERA values, per-sequence informative-site positions, plot colors, and upper/lower cutoffs; and
-- Code 8 single-recombinant CHIMAERA values, informative-site positions, plot color, and upper/lower cutoffs; and
-- Code 9 PhylPro sequence correlations, plot colors, and alignment positions; and
-- Code 10 raw pairwise distances, comparison colors, and alignment positions; and
+- Code 5 multi-block 3SEQ sequence series, colors, and line/flood-fill transparency;
+- Code 6 MaxChi comparison values, plot colors, and upper/lower cutoffs;
+- Code 7 CHIMAERA values, per-sequence informative-site positions, plot colors, and upper/lower cutoffs;
+- Code 8 single-recombinant CHIMAERA values, informative-site positions, plot color, and upper/lower cutoffs;
+- Code 9 PhylPro sequence correlations, plot colors, and alignment positions;
+- Code 10 raw pairwise distances, comparison colors, and alignment positions;
 - Code 11 event box coordinates, heights, hexadecimal colors, and per-event metadata.
 
 Additional RDP CSV codes should be added from real example exports.
@@ -156,7 +157,16 @@ python -m http.server 8000
 
 This is only for development. End users do **not** need Python when using the GitHub Pages site.
 
-With the local server running, open `tests/code6.html`, `tests/code7.html`, `tests/code8.html`, `tests/code9.html`, `tests/code10.html`, or `tests/code11.html` for parser checks against Darren's supplied CSVs. The matching `code6-preview.html`, `code7-preview.html`, `code8-preview.html`, `code9-preview.html`, `code10-preview.html`, and `code11-preview.html` pages load each CSV in the full visualizer and check its chart rendering. The example exports are stored under `examples/`.
+With the local server running, open the parser or visualizer checks listed below. Each visualizer check loads its CSV through the app's file picker and verifies the resulting Plotly figure. Code 10 checks also verify that Code 1 normalization still works; Code 11 checks cover event geometry, colors, hover metadata, and isolate/show-all controls.
+
+| Code | Example CSV | Parser check | Visualizer check | RDP reference |
+| --- | --- | --- | --- | --- |
+| 6 | [MaxChi](examples/rdp-code-6-maxchi.csv) | [Parser](tests/code6.html) | [Visualizer](tests/code6-preview.html) | — |
+| 7 | [CHIMAERA](examples/rdp-code-7-chimaera.csv) | [Parser](tests/code7.html) | [Visualizer](tests/code7-preview.html) | — |
+| 8 | [Single-recombinant CHIMAERA](examples/rdp-code-8-chimaera.csv) | [Parser](tests/code8.html) | [Visualizer](tests/code8-preview.html) | [Screenshot](images/rdp-code-8-reference.png) |
+| 9 | [PhylPro](examples/rdp-code-9-phylpro.csv) | [Parser](tests/code9.html) | [Visualizer](tests/code9-preview.html) | [Screenshot](images/rdp-code-9-reference.png) |
+| 10 | [Distance](examples/rdp-code-10-distance.csv) | [Parser](tests/code10.html) | [Visualizer](tests/code10-preview.html) | [Screenshot](images/rdp-code-10-reference.png) |
+| 11 | [Event map](examples/rdp-code-11-event-map.csv) | [Parser](tests/code11.html) | [Visualizer](tests/code11-preview.html) | [Screenshot](images/rdp-code-11-reference.png) |
 
 ## GitHub Pages
 
@@ -174,24 +184,9 @@ A Pages deployment workflow is included under `.github/workflows/pages.yml`. If 
 - `zoom-controls.js` — event zoom, full-alignment reset, and keyboard navigation
 - `rdp-parser.js` — RDP CSV Code 1 through Code 11 parser
 - `app.js` — directory access and Plotly renderer
-- `examples/rdp-code-6-maxchi.csv` — supplied MaxChi example export
-- `examples/rdp-code-7-chimaera.csv` — supplied CHIMAERA example export
-- `examples/rdp-code-8-chimaera.csv` — supplied single-recombinant CHIMAERA export
-- `images/rdp-code-8-reference.png` — corresponding RDP screenshot
-- `tests/code8.html`, `tests/code8-preview.html` — Code 8 parser and rendering checks
-- `tests/code6.html`, `tests/code6-preview.html`, `tests/code7.html`, and `tests/code7-preview.html` — browser checks for parsing and chart rendering
-
-- `examples/rdp-code-9-phylpro.csv` — supplied PhylPro export
-- `images/rdp-code-9-reference.png` — corresponding RDP screenshot
-- `tests/code9.html`, `tests/code9-preview.html` — Code 9 parser and rendering checks
-
-- `examples/rdp-code-10-distance.csv` — supplied distance export
-- `images/rdp-code-10-reference.png` — corresponding RDP screenshot
-- `tests/code10.html`, `tests/code10-preview.html` — Code 10 parser and rendering checks
-
-- `examples/rdp-code-11-event-map.csv` — supplied event-map export
-- `images/rdp-code-11-reference.png` — corresponding RDP screenshot
-- `tests/code11.html`, `tests/code11-preview.html` — Code 11 parser and rendering checks
+- `examples/` — supplied CSV fixtures listed above
+- `tests/` — browser parser and visualizer checks listed above
+- `images/rdp-code-*-reference.png` — supplied desktop screenshots for comparison
 
 ## Scope
 

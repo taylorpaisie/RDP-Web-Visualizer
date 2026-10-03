@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#08111f" />
-  <meta name="description" content="About RDP Web Visualizer, a browser-based viewer for RDP5 CSV exports." />
+  <meta name="description" content="Explore RDP5 CSV Codes 1–11 with interactive plots, recombination event maps, metadata tooltips, and figure downloads." />
   <title>About · RDP Web Visualizer</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="contact.js" defer></script>
@@ -35,10 +35,24 @@
         <p class="about-motto">⛧ Hail thyself. Question everything.</p>
         <h1 id="about-title">RDP output, easier to explore.</h1>
         <p class="about-intro">RDP Web Visualizer turns RDP5 CSV exports into interactive figures for teaching and exploratory visualization.</p>
-        <p>Explore comparison curves, SiScan Z-scores, MaxChi and CHIMAERA values, PhylPro correlations, distance plots, recombination event maps, single- and multi-sequence 3SEQ envelopes, breakpoint calls, confidence intervals, and open reading frames together. The viewer supports CSV Codes 1 through 11, with zoom, hover details, and figure downloads.</p>
+        <p>The viewer supports <strong>RDP CSV Codes 1 through 11</strong>, based on supplied RDP v5.93 exports. Plot values and event annotations appear alongside a six-track reading-frame map with directional ORF arrows.</p>
+
+        <h2>Supported plots</h2>
+        <ul>
+          <li><strong>Codes 1–3:</strong> pairwise comparison curves, GENECONV boxes, and SiScan substitution-series Z-scores.</li>
+          <li><strong>Codes 4–6:</strong> single- and multi-sequence 3SEQ curves with permutation envelopes, and MaxChi comparison curves.</li>
+          <li><strong>Codes 7–8:</strong> multi-sequence and single-recombinant CHIMAERA curves with informative-site positions.</li>
+          <li><strong>Codes 9–10:</strong> PhylPro correlation coefficients and pairwise distances. Distance plots put zero at the top and increase downward.</li>
+          <li><strong>Code 11:</strong> recombination event maps with one outlined box per event, using its exported alignment coordinates, height, and hexadecimal color.</li>
+        </ul>
+
+        <h2>Explore events and their details</h2>
+        <p>Hover over curves to inspect values, or near a Code 11 box boundary to see the event number, detection method, recombinant, parents, coordinates, p-value statistic, distance, and color. Use the legend to hide an item, isolate it with <strong>Only</strong>, or restore everything with <strong>Show all</strong>.</p>
+        <p>Breakpoint calls, 95% and 99% confidence intervals, and significance cutoffs are shown when provided by the CSV. Use <strong>Zoom to event</strong> to focus on reported breakpoints and <strong>Full alignment</strong> to reset the view. The Code 11 overview has no single event breakpoint to zoom to.</p>
+        <p>Download the current view as PNG, SVG, JPEG, or WebP, including the selected comparisons or events and an annotation key. Code 1 curves use a normalized display with raw values in hover details; PhylPro coefficients, distance values, and event-box heights retain their exported values. The CSV determines these values even when a reference screenshot shows a different scale.</p>
 
         <h2>Your files stay in your browser</h2>
-        <p>Choose an RDP output folder or a single CSV. Selected files are processed locally in your browser without uploading their contents to a server.</p>
+        <p>Choose an RDP output folder in Chrome or Edge to follow the newest CSV automatically, or choose a single CSV in other browsers. Selected files are processed locally in your browser without uploading their contents to a server.</p>
 
         <h2>Built around RDP</h2>
         <p>This project visualizes exported results. It does not run recombination detection or independently validate an event. When reporting analyses, cite RDP5 and the relevant detection methods.</p>
