@@ -2,7 +2,7 @@
 
 A browser-only visualizer for RDP5 CSV exports. No Python, Conda, Docker, or local server is required.
 
-The app supports **RDP CSV Codes 1 through 12**, based on supplied exports from RDP v5.93. It displays the ORF map alongside interactive plots, with breakpoint calls, 95% and 99% confidence intervals, significance cutoffs, and other annotations when the export provides them.
+The app supports **RDP CSV Codes 1 through 13**, based on supplied exports from RDP v5.93. It displays the ORF map alongside interactive plots, with breakpoint calls, 95% and 99% confidence intervals, significance cutoffs, and other annotations when the export provides them.
 
 | CSV code | Plot | Key features |
 | --- | --- | --- |
@@ -18,6 +18,7 @@ The app supports **RDP CSV Codes 1 through 12**, based on supplied exports from 
 | 10 | Distance | Raw pairwise distances, with zero at the top and increasing distance downward |
 | 11 | Recombination event map | One outlined box per event, exact exported hex colors, and boundary-hover metadata |
 | 12 | Breakpoint distribution | Density curve, nested 95%/99% confidence envelopes, both cutoffs, and transparent breakpoint ticks |
+| 13 | Breakpoint clustering p-values | Raw signed log p-values, inverted axis, exported 95%/99% envelopes, and transparent breakpoint ticks |
 
 The viewer also provides a six-track ORF map (`+1`, `+2`, `+3`, `-1`, `-2`, `-3`) with direction arrows, metadata and gene tables, and PNG, SVG, JPEG, and WebP figure downloads.
 
@@ -100,6 +101,10 @@ Code 12 shows the exported breakpoint density per 200 nt window as a black curve
 
 The separate `Breakpoint positions` section after the main plot supplies the short vertical ticks between the plot and ORF map. These use 0.25 opacity (75% transparency), remain visible when the density group is hidden, and share the alignment axis for zooming and figure export. Positions and repeated calls are preserved; these are distinct from a single event's beginning/ending breakpoint lines. The parser reads this trailing section for any supported export that supplies it.
 
+## CSV Code 13: breakpoint clustering p-values
+
+The supplied `code 13b.csv` example is stored in [examples/rdp-code-13-breakpoint-p-values.csv](examples/rdp-code-13-breakpoint-p-values.csv), alongside its [RDP reference screenshot](images/rdp-code-13-reference.png). It contains 4,778 plot rows and 29 ORFs across a 9,556-position alignment. The viewer preserves the raw signed values and all four exported confidence-envelope columns. The axis runs from −4 at the top to +4 at the bottom for this fixture, matching the screenshot; hover text identifies these as signed log p-values rather than breakpoint counts, despite the reused count-column heading in the CSV. All 599 trailing breakpoint positions retain their faint ticks, shared zoom axis, and export behavior.
+
 ## Use the web app
 
 Open:
@@ -151,7 +156,8 @@ The parser is intentionally grounded on supplied real examples rather than guess
 - Code 9 PhylPro sequence correlations, plot colors, and alignment positions;
 - Code 10 raw pairwise distances, comparison colors, and alignment positions;
 - Code 11 event box coordinates, heights, hexadecimal colors, and per-event metadata;
-- Code 12 breakpoint density, 95%/99% envelopes, cutoffs, and trailing breakpoint positions.
+- Code 12 breakpoint density, 95%/99% envelopes, cutoffs, and trailing breakpoint positions;
+- Code 13 signed breakpoint p-values, exported 95%/99% envelopes, inverted axis, and trailing breakpoint positions.
 
 Additional RDP CSV codes should be added from real example exports.
 
@@ -164,6 +170,8 @@ python -m http.server 8000
 ```
 
 This is only for development. End users do **not** need Python when using the GitHub Pages site.
+
+Run `node tests/code13.cjs` to verify Code 13 source values, inverted axis, envelopes, ticks, and signed-value hover labels.
 
 Run `node tests/code12.cjs` to verify Code 12 parsing, rendered trace geometry, transparent ticks, and the supplied Code 6 regression.
 
@@ -178,6 +186,7 @@ With the local server running, open the parser or visualizer checks listed below
 | 10 | [Distance](examples/rdp-code-10-distance.csv) | [Parser](tests/code10.html) | [Visualizer](tests/code10-preview.html) | [Screenshot](images/rdp-code-10-reference.png) |
 | 11 | [Event map](examples/rdp-code-11-event-map.csv) | [Parser](tests/code11.html) | [Visualizer](tests/code11-preview.html) | [Screenshot](images/rdp-code-11-reference.png) |
 | 12 | [Breakpoint distribution](examples/rdp-code-12-breakpoint-distribution.csv) | [Parser and renderer](tests/code12.cjs) | — | [Screenshot](images/rdp-code-12-reference.png) |
+| 13 | [Breakpoint p-values](examples/rdp-code-13-breakpoint-p-values.csv) | [Parser and renderer](tests/code13.cjs) | [Visualizer](tests/code13-preview.html) | [Screenshot](images/rdp-code-13-reference.png) |
 
 ## GitHub Pages
 
@@ -193,7 +202,7 @@ A Pages deployment workflow is included under `.github/workflows/pages.yml`. If 
 - `dark-shell.css` — dark theme (imported by `styles.css`)
 - `contact.js` — shared contact footer used on both pages
 - `zoom-controls.js` — event zoom, full-alignment reset, and keyboard navigation
-- `rdp-parser.js` — RDP CSV Code 1 through Code 11 parser
+- `rdp-parser.js` — RDP CSV Codes 1 through 13 parser
 - `app.js` — directory access and Plotly renderer
 - `examples/` — supplied CSV fixtures listed above
 - `tests/` — browser parser and visualizer checks listed above

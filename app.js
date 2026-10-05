@@ -333,6 +333,7 @@ function renderPlot(parsed) {
   let y2TickText = null;
 
   if (parsed.kind === 'breakpoint-distribution') {
+    const valueLabel = parsed.code === 13 ? 'Signed log p-value' : 'Breakpoints';
     const addEnvelope = (level, opacity) => {
       const lower = parsed.series.find((item) => item.name === `Lower ${level}% CI`);
       const upper = parsed.series.find((item) => item.name === `Upper ${level}% CI`);
@@ -341,7 +342,7 @@ function renderPlot(parsed) {
         x: parsed.x, y: series.y, name: series.name,
         line: { color: hexToRgba('#64748b', opacity), width: 0.6 },
         ...(index === 1 ? { fill: 'tonexty', fillcolor: hexToRgba('#64748b', opacity) } : {}),
-        hovertemplate: `${series.name}<br>Position %{x:,}<br>Breakpoints %{y:.3f}<extra></extra>`,
+        hovertemplate: `${series.name}<br>Position %{x:,}<br>${valueLabel} %{y:.3f}<extra></extra>`,
         showlegend: false, xaxis: 'x2', yaxis: 'y2',
       });
     };
@@ -351,14 +352,16 @@ function renderPlot(parsed) {
       meta: { comparisonIndex: 0 }, type: 'scatter', mode: 'lines',
       x: parsed.x, y: parsed.series[0].y, name: parsed.series[0].name,
       line: { color: '#111827', width: 1.6 }, showlegend: false,
-      hovertemplate: 'Position %{x:,}<br>Breakpoints per window %{y:.3f}<extra></extra>',
+      hovertemplate: `Position %{x:,}<br>${parsed.code === 13 ? valueLabel : 'Breakpoints per window'} %{y:.3f}<extra></extra>`,
       xaxis: 'x2', yaxis: 'y2',
     });
     for (const value of [parsed.upperCutoff, parsed.lowerCutoff]) {
       const shape = cutoffShape(value);
       if (shape) shapes.push(shape);
     }
-    yRange = [0, parsed.maxY * 1.04];
+    // Code 13 uses signed values and RDP displays negative values at the top.
+    const signedExtent = Math.max(1, Math.ceil(Math.max(Math.abs(parsed.minY), Math.abs(parsed.maxY))));
+    yRange = parsed.code === 13 ? [signedExtent, -signedExtent] : [0, parsed.maxY * 1.04];
     hovermode = 'closest';
     plotBackground = '#f3f4f6';
     y2Grid = '#d9dee5';
@@ -793,7 +796,7 @@ function renderParsed(parsed) {
     ? parsed.batches.length
     : ['three-seq-overview', 'breakpoint-distribution'].includes(parsed.kind) ? parsed.groups.length : parsed.series.length).toLocaleString();
   els.formatBadge.textContent = `CSV Code ${m['CSV Code'] ?? parsed.code ?? '—'}`;
-  els.methodBadge.textContent = parsed.kind === 'breakpoint-distribution' ? 'Breakpoint distribution' : parsed.kind === 'event-map' ? 'Recombination event map' : parsed.kind === 'boxes'
+  els.methodBadge.textContent = parsed.kind === 'breakpoint-distribution' ? (parsed.code === 13 ? 'Breakpoint clustering p-values' : 'Breakpoint distribution') : parsed.kind === 'event-map' ? 'Recombination event map' : parsed.kind === 'boxes'
     ? 'GENECONV box plot'
       : parsed.kind === 'siscan' ? 'SiScan Z-score plot'
         : parsed.kind === 'maxchi' ? 'MaxChi plot'
