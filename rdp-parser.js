@@ -857,7 +857,7 @@
   }
 
   // Keep the trailing breakpoint list separate from numeric plot rows.
-  // Shared by Code 12 and future exports that supply this section.
+  // Shared by Codes 12/13 and future exports that supply this section.
   function parseBreakpointPositions(common) {
     const index = common.lines.findIndex((line) => /^Breakpoint positions:?(?:\s*)$/i.test(line.trim()));
     if (index < 0) return [];
@@ -878,7 +878,7 @@
     return positions;
   }
 
-  function parseCode12(common) {
+  function parseBreakpointDistribution(common, code) {
     const { filename, lines, genes, metadata, plotIndex } = common;
     let header = null;
     let upperCutoff = null;
@@ -892,7 +892,7 @@
       if (/^Breakpoint positions$/i.test(key)) break;
       if (key === 'Upper cutoff dotted line' || key === 'Lower cutoff dotted line') {
         const value = fields[1] ? Number(fields[1]) : NaN;
-        if (!Number.isFinite(value)) throw new Error(`Invalid Code 12 cutoff on line ${i + 1}.`);
+        if (!Number.isFinite(value)) throw new Error(`Invalid Code ${code} cutoff on line ${i + 1}.`);
         metadata[key] = value;
         if (key.startsWith('Upper')) upperCutoff = value;
         else lowerCutoff = value;
@@ -901,27 +901,27 @@
       } else if (header) {
         const values = fields.map((value) => value === '' ? NaN : Number(value));
         if (fields.length !== header.length || !values.every(Number.isFinite)) {
-          throw new Error(`Invalid Code 12 plot row on line ${i + 1}.`);
+          throw new Error(`Invalid Code ${code} plot row on line ${i + 1}.`);
         }
         rows.push(values);
       }
     }
     const expected = ['Upper 99% CI', 'Lower 99% CI', 'Upper 95% CI', 'Lower 95% CI'];
     if (!header || header.length !== 6 || !expected.every((name) => header.includes(name)) || !rows.length) {
-      throw new Error('The Code 12 density curve or confidence-envelope columns are missing.');
+      throw new Error(`The Code ${code} curve or confidence-envelope columns are missing.`);
     }
     const x = rows.map((row) => row[0]);
     const series = header.slice(1).map((name, index) => ({
-      name, role: name, color: '#111827', groupIndex: 0,
+      name: code === 13 && index === 0 ? 'Signed log p-value' : name, role: name, color: '#111827', groupIndex: 0,
       y: rows.map((row) => row[index + 1]),
     }));
     const values = rows.flatMap((row) => row.slice(1));
     metadata['Maximum X-axis value'] ??= Math.max(...x);
-    metadata['Event title'] ??= 'Breakpoint distribution';
-    return { filename, code: 12, kind: 'breakpoint-distribution', genes, metadata, x, series,
-      groups: [{ name: header[1], role: 'Breakpoint density and confidence envelopes', color: '#111827' }],
+    metadata['Event title'] ??= code === 13 ? 'Breakpoint clustering p-values' : 'Breakpoint distribution';
+    return { filename, code, kind: 'breakpoint-distribution', genes, metadata, x, series,
+      groups: [{ name: code === 13 ? 'Breakpoint clustering p-values' : header[1], role: code === 13 ? 'Signed breakpoint p-values and exported confidence envelopes' : 'Breakpoint density and confidence envelopes', color: '#111827' }],
       upperCutoff, lowerCutoff,
-      minY: Math.min(0, ...values), maxY: Math.max(...values, upperCutoff ?? 0, lowerCutoff ?? 0),
+      minY: Math.min(0, ...values, upperCutoff ?? 0, lowerCutoff ?? 0), maxY: Math.max(...values, upperCutoff ?? 0, lowerCutoff ?? 0),
       rowCount: rows.length };
   }
 
@@ -937,8 +937,8 @@
     if (code === '9') return parseCode9(common);
     if (code === '10') return parsePairwise(common, 10);
     if (code === '11') return parseCode11(common);
-    if (code === '12') return parseCode12(common);
-    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 12.`);
+    if (code === '12' || code === '13') return parseBreakpointDistribution(common, Number(code));
+    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 13.`);
   }
 
   function parseRdpCsv(text, filename = 'RDP export.csv') {

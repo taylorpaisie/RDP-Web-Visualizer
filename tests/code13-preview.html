@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RDP Code 13 visualizer check</title>
+<pre id="result">Running…</pre>
+<iframe src="../index.html" style="width:1900px;height:1100px;border:0"></iframe>
+<script>
+  (async () => {
+    const frame = document.querySelector('iframe');
+    const result = document.querySelector('#result');
+    const assert = (condition, message) => {
+      if (!condition) throw new Error(message);
+    };
+    try {
+      await new Promise((resolve) => frame.addEventListener('load', resolve, { once: true }));
+      const csv = await (await fetch('../examples/rdp-code-13-breakpoint-p-values.csv')).text();
+      const transfer = new DataTransfer();
+      transfer.items.add(new File([csv], 'rdp-code-13-breakpoint-p-values.csv', { type: 'text/csv' }));
+      const input = frame.contentDocument.querySelector('#file-input');
+      input.files = transfer.files;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      for (let i = 0; i < 50; i += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        const plot = frame.contentDocument.querySelector('#rdp-plot');
+        if (plot.data?.length) {
+          const curves = plot.data.filter((trace) => trace.meta?.comparisonIndex === 0);
+          const ticks = plot.data.find((trace) => trace.name === 'Plotted breakpoint positions');
+          assert(curves.length === 5, 'Curve or confidence envelopes missing');
+          assert(curves.at(-1).y[0] === 1.318759, 'Signed values changed');
+          assert(plot.layout.yaxis2.range.join('|') === '4|-4', 'Signed axis must be inverted');
+          assert(ticks.x.length === 599 * 3 && ticks.opacity === 0.25, 'Faint breakpoint ticks missing');
+          assert(plot.layout.xaxis3.matches === 'x', 'Breakpoint ticks must share zoom');
+          assert(curves.filter((trace) => trace.fill === 'tonexty').length === 2, 'Both confidence envelopes required');
+          assert(frame.contentDocument.querySelector('#method-badge').textContent === 'Breakpoint clustering p-values', 'Method badge missing');
+          result.textContent = 'PASS: Code 13 signed curve, inverted axis, both envelopes, 599 faint aligned breakpoint ticks';
+          break;
+        }
+      }
+      if (!result.textContent.startsWith('PASS')) {
+        result.textContent = `FAIL: ${frame.contentDocument.querySelector('#status').textContent}`;
+      }
+    } catch (error) {
+      result.textContent = `FAIL: ${error.message}`;
+    }
+  })();
+</script>
