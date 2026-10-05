@@ -2,7 +2,7 @@
 
 A browser-only visualizer for RDP5 CSV exports. No Python, Conda, Docker, or local server is required.
 
-The app supports **RDP CSV Codes 1 through 13**, based on supplied exports from RDP v5.93. It displays the ORF map alongside interactive plots, with breakpoint calls, 95% and 99% confidence intervals, significance cutoffs, and other annotations when the export provides them.
+The app supports **RDP CSV Codes 1 through 14**, based on supplied exports from RDP v5.93. It displays the ORF map alongside interactive plots, with breakpoint calls, 95% and 99% confidence intervals, significance cutoffs, and other annotations when the export provides them.
 
 | CSV code | Plot | Key features |
 | --- | --- | --- |
@@ -19,6 +19,7 @@ The app supports **RDP CSV Codes 1 through 13**, based on supplied exports from 
 | 11 | Recombination event map | One outlined box per event, exact exported hex colors, and boundary-hover metadata |
 | 12 | Breakpoint distribution | Density curve, nested 95%/99% confidence envelopes, both cutoffs, and transparent breakpoint ticks |
 | 13 | Breakpoint clustering p-values | Raw signed log p-values, inverted axis, exported 95%/99% envelopes, and transparent breakpoint ticks |
+| 14 | LDhat recombination rate | Raw mean rho per bp, exported 95% confidence band, and sampled alignment-position ticks |
 
 The viewer also provides a six-track ORF map (`+1`, `+2`, `+3`, `-1`, `-2`, `-3`) with direction arrows, metadata and gene tables, and PNG, SVG, JPEG, and WebP figure downloads.
 
@@ -105,6 +106,12 @@ The separate `Breakpoint positions` section after the main plot supplies the sho
 
 The supplied `code 13b.csv` example is stored in [examples/rdp-code-13-breakpoint-p-values.csv](examples/rdp-code-13-breakpoint-p-values.csv), alongside its [RDP reference screenshot](images/rdp-code-13-reference.png). It contains 4,778 plot rows and 29 ORFs across a 9,556-position alignment. The viewer preserves the raw signed values and all four exported confidence-envelope columns. The axis runs from −4 at the top to +4 at the bottom for this fixture, matching the screenshot; hover text identifies these as signed log p-values rather than breakpoint counts, despite the reused count-column heading in the CSV. All 599 trailing breakpoint positions retain their faint ticks, shared zoom axis, and export behavior.
 
+## CSV Code 14: LDhat recombination rate
+
+The supplied [Code 14 CSV](examples/rdp-code-14-ldhat.csv) contains 1,690 samples over a 9,556-position alignment. The viewer draws the raw mean rho per bp as a black curve and the `-95% CI` / `+95% CI` columns as a gray band, with an upward-increasing axis fitted to the upper bounds. Repeated alignment positions are preserved. At positions 914 and 916, the exported upper bound falls below the mean (and at 916 below the lower bound); these transition values are retained exactly rather than repaired. Faint top ticks mark the exported sample positions; these are not labeled as recombination breakpoints.
+
+Unlike the [RDP reference screenshot](images/rdp-code-14-reference.png), this CSV includes no gene-map section or trailing breakpoint list. The viewer leaves ORFs absent, indicates that the map was not supplied, and expands the plot into the available space. It does not reuse annotations from another file. Gene-prefixed Code 14 exports can also display their supplied ORFs.
+
 ## Use the web app
 
 Open:
@@ -157,7 +164,8 @@ The parser is intentionally grounded on supplied real examples rather than guess
 - Code 10 raw pairwise distances, comparison colors, and alignment positions;
 - Code 11 event box coordinates, heights, hexadecimal colors, and per-event metadata;
 - Code 12 breakpoint density, 95%/99% envelopes, cutoffs, and trailing breakpoint positions;
-- Code 13 signed breakpoint p-values, exported 95%/99% envelopes, inverted axis, and trailing breakpoint positions.
+- Code 13 signed breakpoint p-values, exported 95%/99% envelopes, inverted axis, and trailing breakpoint positions;
+- Code 14 LDhat mean rho per bp and 95% bounds, with or without a gene-map preamble.
 
 Additional RDP CSV codes should be added from real example exports.
 
@@ -170,6 +178,8 @@ python -m http.server 8000
 ```
 
 This is only for development. End users do **not** need Python when using the GitHub Pages site.
+
+Run `node tests/code14.cjs` to verify Code 14 source values, confidence bands, duplicate sample coordinates, absent ORFs, and figure export keys.
 
 Run `node tests/code13.cjs` to verify Code 13 source values, inverted axis, envelopes, ticks, and signed-value hover labels.
 
@@ -187,6 +197,7 @@ With the local server running, open the parser or visualizer checks listed below
 | 11 | [Event map](examples/rdp-code-11-event-map.csv) | [Parser](tests/code11.html) | [Visualizer](tests/code11-preview.html) | [Screenshot](images/rdp-code-11-reference.png) |
 | 12 | [Breakpoint distribution](examples/rdp-code-12-breakpoint-distribution.csv) | [Parser and renderer](tests/code12.cjs) | — | [Screenshot](images/rdp-code-12-reference.png) |
 | 13 | [Breakpoint p-values](examples/rdp-code-13-breakpoint-p-values.csv) | [Parser and renderer](tests/code13.cjs) | [Visualizer](tests/code13-preview.html) | [Screenshot](images/rdp-code-13-reference.png) |
+| 14 | [LDhat rate](examples/rdp-code-14-ldhat.csv) | [Parser and renderer](tests/code14.cjs) | [Visualizer](tests/code14-preview.html) | [Screenshot](images/rdp-code-14-reference.png) |
 
 ## GitHub Pages
 
@@ -202,7 +213,7 @@ A Pages deployment workflow is included under `.github/workflows/pages.yml`. If 
 - `dark-shell.css` — dark theme (imported by `styles.css`)
 - `contact.js` — shared contact footer used on both pages
 - `zoom-controls.js` — event zoom, full-alignment reset, and keyboard navigation
-- `rdp-parser.js` — RDP CSV Codes 1 through 13 parser
+- `rdp-parser.js` — RDP CSV Codes 1 through 14 parser
 - `app.js` — directory access and Plotly renderer
 - `examples/` — supplied CSV fixtures listed above
 - `tests/` — browser parser and visualizer checks listed above

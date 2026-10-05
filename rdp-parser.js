@@ -78,15 +78,17 @@
 
   function parseCommon(text, filename) {
     const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/);
-    if (!lines.length || !lines[0].trim().startsWith('Gene start')) {
+    const hasGeneMap = lines[0]?.trim().startsWith('Gene start');
+    const standaloneCode14 = /^CSV Code:\s*,\s*14\s*$/.test(lines[0]?.trim() || '');
+    if (!hasGeneMap && !standaloneCode14) {
       throw new Error('This file does not look like a supported RDP CSV export (gene-map header not found).');
     }
 
-    const blankIndex = lines.findIndex((line, index) => index > 0 && line.trim() === '');
-    if (blankIndex < 0) throw new Error('Could not find the end of the gene-map section.');
+    const blankIndex = hasGeneMap ? lines.findIndex((line, index) => index > 0 && line.trim() === '') : -1;
+    if (hasGeneMap && blankIndex < 0) throw new Error('Could not find the end of the gene-map section.');
 
     const genes = [];
-    for (const line of lines.slice(1, blankIndex)) {
+    for (const line of (hasGeneMap ? lines.slice(1, blankIndex) : [])) {
       if (!line.trim()) continue;
       const parts = splitCsvLine(line);
       if (parts.length < 4) continue;
@@ -925,6 +927,44 @@
       rowCount: rows.length };
   }
 
+  function parseCode14(common) {
+    const { filename, lines, genes, metadata, plotIndex } = common;
+    const header = splitCsvLine(lines[plotIndex + 1] || '');
+    const expected = ['Position in alignment', 'Mean Rho/bp', '-95% CI', '+95% CI'];
+    if (header.length !== expected.length || !expected.every((name, index) => header[index] === name)) {
+      throw new Error('The Code 14 mean rho and 95% confidence columns are missing.');
+    }
+    const rows = [];
+    for (let i = plotIndex + 2; i < lines.length; i += 1) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      if (/^Breakpoint positions:?$/i.test(line)) break;
+      const fields = splitCsvLine(line);
+      const values = fields.map((value) => value === '' ? NaN : Number(value));
+      const [position, mean, lower, upper] = values;
+      if (fields.length !== 4 || !values.every(Number.isFinite)
+        || !Number.isInteger(position) || position < 1
+        || (Number.isFinite(metadata['Maximum X-axis value']) && position > metadata['Maximum X-axis value'])
+        || mean < 0 || lower < 0 || upper < 0
+        || (rows.length && position < rows.at(-1)[0])) {
+        throw new Error(`Invalid Code 14 plot row on line ${i + 1}.`);
+      }
+      // Keep repeated positions and source order, including exported bounds
+      // that cross or do not contain the mean at transition rows.
+      rows.push(values);
+    }
+    if (!rows.length) throw new Error('No Code 14 LDhat plot rows were found.');
+    const x = rows.map((row) => row[0]);
+    const series = header.slice(1).map((name, index) => ({
+      name, role: name, color: '#111827', groupIndex: 0, y: rows.map((row) => row[index + 1]),
+    }));
+    metadata['Maximum X-axis value'] ??= Math.max(...x);
+    metadata['Event title'] ??= 'LDhat recombination rate';
+    return { filename, code: 14, kind: 'ldhat', genes, metadata, x, series,
+      sampledPositions: [...x], groups: [{ name: 'Mean rho per bp', role: 'LDhat mean rho and 95% confidence band', color: '#111827' }],
+      minY: 0, maxY: Math.max(...rows.map((row) => row[3])), rowCount: rows.length };
+  }
+
   function parsePlotCsv(common) {
     const code = String(common.metadata['CSV Code'] ?? '');
     if (code === '1') return parsePairwise(common);
@@ -937,8 +977,9 @@
     if (code === '9') return parseCode9(common);
     if (code === '10') return parsePairwise(common, 10);
     if (code === '11') return parseCode11(common);
+    if (code === '14') return parseCode14(common);
     if (code === '12' || code === '13') return parseBreakpointDistribution(common, Number(code));
-    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 13.`);
+    throw new Error(`Unsupported RDP CSV code: ${code || 'unknown'}. This version supports Codes 1 through 14.`);
   }
 
   function parseRdpCsv(text, filename = 'RDP export.csv') {
